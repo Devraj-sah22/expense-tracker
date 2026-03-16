@@ -38,18 +38,30 @@ const LoanTracker = ({ loans, setLoans }) => {
       return;
     }
 
-    const principal = parseFloat(formData.principalAmount);
-    const paid = parseFloat(formData.paidAmount || 0);
+    const principal = parseFloat(formData.principalAmount) || 0;
+    if (principal <= 0) {
+      toast.error('Please enter a valid principal amount');
+      return;
+    }
+
+    const paid = parseFloat(formData.paidAmount) || 0;
     const remaining = principal - paid;
 
     const newLoan = {
       id: editingLoan?.id || Date.now().toString(),
-      ...formData,
+      lenderName: formData.lenderName,
+      loanType: formData.loanType,
       principalAmount: principal,
-      interestRate: parseFloat(formData.interestRate || 0),
+      interestRate: parseFloat(formData.interestRate) || 0,
+      tenure: formData.tenure || '',
+      tenureType: formData.tenureType,
+      startDate: new Date(formData.startDate).toISOString(),
+      emiAmount: parseFloat(formData.emiAmount) || 0,
       paidAmount: paid,
-      remainingAmount: remaining,
-      progress: (paid / principal) * 100,
+      remainingAmount: Math.max(remaining, 0),
+      progress: principal > 0 ? (paid / principal) * 100 : 0,
+      status: remaining <= 0 ? 'closed' : formData.status,
+      notes: formData.notes || '',
       createdAt: new Date().toISOString(),
     };
 
@@ -85,16 +97,16 @@ const LoanTracker = ({ loans, setLoans }) => {
   const handleEdit = (loan) => {
     setEditingLoan(loan);
     setFormData({
-      lenderName: loan.lenderName,
-      loanType: loan.loanType,
-      principalAmount: loan.principalAmount,
-      interestRate: loan.interestRate || '',
-      tenure: loan.tenure || '',
+      lenderName: loan.lenderName || '',
+      loanType: loan.loanType || 'personal',
+      principalAmount: loan.principalAmount?.toString() || '',
+      interestRate: loan.interestRate?.toString() || '',
+      tenure: loan.tenure?.toString() || '',
       tenureType: loan.tenureType || 'months',
-      startDate: loan.startDate.split('T')[0],
-      emiAmount: loan.emiAmount || '',
-      paidAmount: loan.paidAmount,
-      status: loan.status,
+      startDate: loan.startDate ? loan.startDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      emiAmount: loan.emiAmount?.toString() || '',
+      paidAmount: loan.paidAmount?.toString() || '0',
+      status: loan.status || 'active',
       notes: loan.notes || '',
     });
     setShowAddModal(true);
@@ -116,31 +128,34 @@ const LoanTracker = ({ loans, setLoans }) => {
 
     setLoans(loans.map(loan => {
       if (loan.id === id) {
-        const newPaid = loan.paidAmount + paymentAmount;
-        const newRemaining = loan.principalAmount - newPaid;
+        const currentPaid = loan.paidAmount || 0;
+        const principal = loan.principalAmount || 0;
+        const newPaid = currentPaid + paymentAmount;
+        const newRemaining = Math.max(principal - newPaid, 0);
         const newStatus = newRemaining <= 0 ? 'closed' : loan.status;
         
-        toast.success(`Payment of ₹${paymentAmount} recorded`);
+        toast.success(`Payment of ₹${paymentAmount.toLocaleString()} recorded`);
         
         return {
           ...loan,
           paidAmount: newPaid,
           remainingAmount: newRemaining,
           status: newStatus,
-          progress: (newPaid / loan.principalAmount) * 100,
+          progress: principal > 0 ? (newPaid / principal) * 100 : 0,
         };
       }
       return loan;
     }));
   };
 
+  // Safe calculations with fallbacks
   const filteredLoans = loans.filter(loan => {
     if (filter === 'all') return true;
     return loan.status === filter;
   });
 
-  const totalPrincipal = loans.reduce((sum, l) => sum + l.principalAmount, 0);
-  const totalPaid = loans.reduce((sum, l) => sum + l.paidAmount, 0);
+  const totalPrincipal = loans.reduce((sum, l) => sum + (l.principalAmount || 0), 0);
+  const totalPaid = loans.reduce((sum, l) => sum + (l.paidAmount || 0), 0);
   const totalRemaining = loans.reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
 
   return (
@@ -173,6 +188,7 @@ const LoanTracker = ({ loans, setLoans }) => {
         <div className="stat-card bg-gradient-to-br from-orange-500 to-red-500 text-white">
           <p className="text-sm opacity-90">Remaining</p>
           <p className="text-3xl font-bold mt-2">₹{totalRemaining.toLocaleString()}</p>
+          <p className="text-xs opacity-75 mt-1">{loans.filter(l => l.status === 'active').length} active loans</p>
         </div>
       </div>
 
@@ -406,6 +422,14 @@ const LoanTracker = ({ loans, setLoans }) => {
           filteredLoans.map((loan) => {
             const loanType = loanTypes.find(t => t.id === loan.loanType) || loanTypes[5];
             const Icon = loanType.iconComp;
+            
+            // Safe values with fallbacks
+            const principalAmount = loan.principalAmount || 0;
+            const paidAmount = loan.paidAmount || 0;
+            const remainingAmount = loan.remainingAmount || 0;
+            const progress = principalAmount > 0 ? (paidAmount / principalAmount) * 100 : 0;
+            const emiAmount = loan.emiAmount || 0;
+            
             return (
               <div key={loan.id} className="premium-card p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start justify-between">
@@ -421,7 +445,7 @@ const LoanTracker = ({ loans, setLoans }) => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{loan.lenderName}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{loanType.name}</p>
                       <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span>Started: {format(new Date(loan.startDate), 'MMM d, yyyy')}</span>
+                        <span>Started: {loan.startDate ? format(new Date(loan.startDate), 'MMM d, yyyy') : 'N/A'}</span>
                         {loan.interestRate > 0 && (
                           <span>Interest: {loan.interestRate}%</span>
                         )}
@@ -458,30 +482,36 @@ const LoanTracker = ({ loans, setLoans }) => {
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Principal</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">₹{loan.principalAmount.toLocaleString()}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">₹{principalAmount.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Paid</p>
-                    <p className="text-lg font-bold text-green-600">₹{loan.paidAmount.toLocaleString()}</p>
+                    <p className="text-lg font-bold text-green-600">₹{paidAmount.toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Remaining</p>
-                    <p className="text-lg font-bold text-orange-600">₹{loan.remainingAmount?.toLocaleString()}</p>
+                    <p className="text-lg font-bold text-orange-600">₹{remainingAmount.toLocaleString()}</p>
                   </div>
                 </div>
 
                 <div className="mt-4">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span className="font-semibold">{loan.progress?.toFixed(1)}%</span>
+                    <span className="font-semibold">{progress.toFixed(1)}%</span>
                   </div>
                   <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-                      style={{ width: `${Math.min(loan.progress || 0, 100)}%` }}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
                 </div>
+
+                {emiAmount > 0 && (
+                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    EMI: ₹{emiAmount.toLocaleString()}/month
+                  </div>
+                )}
 
                 {loan.notes && (
                   <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">

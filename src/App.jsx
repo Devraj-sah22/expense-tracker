@@ -17,6 +17,7 @@ import LendTracker from './components/LendTracker';
 import LoanTracker from './components/LoanTracker';
 import Categories from './components/Categories';
 import Notes from './components/Notes';
+import BankStatements from './components/BankStatements';
 
 function App() {
   // Expenses State
@@ -106,6 +107,17 @@ function App() {
     ];
   });
 
+  // Bank Statements State
+  const [banks, setBanks] = useState(() => {
+    const saved = localStorage.getItem('banks');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [bankTransactions, setBankTransactions] = useState(() => {
+    const saved = localStorage.getItem('bankTransactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem('expenses', JSON.stringify(expenses));
@@ -142,6 +154,14 @@ function App() {
   useEffect(() => {
     localStorage.setItem('notes', JSON.stringify(notes));
   }, [notes]);
+
+  useEffect(() => {
+    localStorage.setItem('banks', JSON.stringify(banks));
+  }, [banks]);
+
+  useEffect(() => {
+    localStorage.setItem('bankTransactions', JSON.stringify(bankTransactions));
+  }, [bankTransactions]);
 
   // Expense Functions
   const addExpense = (expense) => {
@@ -230,6 +250,7 @@ function App() {
                 budgets={budgets}
                 lends={lends}
                 loans={loans}
+                banks={banks}
               />
             } />
             
@@ -319,6 +340,16 @@ function App() {
               <Notes 
                 notes={notes}
                 setNotes={setNotes}
+              />
+            } />
+            
+            {/* Bank Statements Route */}
+            <Route path="banks" element={
+              <BankStatements 
+                banks={banks}
+                setBanks={setBanks}
+                transactions={bankTransactions}
+                setTransactions={setBankTransactions}
               />
             } />
             

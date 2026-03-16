@@ -28,13 +28,13 @@ const SavingsGoals = ({ goals, setGoals }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.target || !formData.saved) {
+    if (!formData.name || !formData.target) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const targetAmount = parseFloat(formData.target);
-    const savedAmount = parseFloat(formData.saved);
+    const targetAmount = parseFloat(formData.target) || 0;
+    const savedAmount = parseFloat(formData.saved) || 0;
 
     if (savedAmount > targetAmount) {
       toast.error('Saved amount cannot exceed target amount');
@@ -43,10 +43,13 @@ const SavingsGoals = ({ goals, setGoals }) => {
 
     const newGoal = {
       id: editingGoal?.id || Date.now().toString(),
-      ...formData,
+      name: formData.name,
       target: targetAmount,
       saved: savedAmount,
-      progress: (savedAmount / targetAmount) * 100,
+      deadline: formData.deadline,
+      icon: formData.icon,
+      category: formData.category,
+      progress: targetAmount > 0 ? (savedAmount / targetAmount) * 100 : 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -60,6 +63,10 @@ const SavingsGoals = ({ goals, setGoals }) => {
 
     setShowAddForm(false);
     setEditingGoal(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setFormData({
       name: '',
       target: '',
@@ -80,9 +87,9 @@ const SavingsGoals = ({ goals, setGoals }) => {
   const handleEdit = (goal) => {
     setEditingGoal(goal);
     setFormData({
-      name: goal.name,
-      target: goal.target,
-      saved: goal.saved,
+      name: goal.name || '',
+      target: goal.target?.toString() || '',
+      saved: goal.saved?.toString() || '',
       deadline: goal.deadline || '',
       icon: goal.icon || '🎯',
       category: goal.category || 'general',
@@ -99,21 +106,25 @@ const SavingsGoals = ({ goals, setGoals }) => {
 
     setGoals(goals.map(goal => {
       if (goal.id === goalId) {
-        const newSaved = goal.saved + newAmount;
-        if (newSaved > goal.target) {
+        const currentSaved = goal.saved || 0;
+        const newSaved = currentSaved + newAmount;
+        const targetAmount = goal.target || 0;
+        
+        if (newSaved > targetAmount) {
           toast.error('Cannot exceed target amount');
           return goal;
         }
+        
         const updatedGoal = {
           ...goal,
           saved: newSaved,
-          progress: (newSaved / goal.target) * 100,
+          progress: targetAmount > 0 ? (newSaved / targetAmount) * 100 : 0,
         };
 
-        if (newSaved >= goal.target) {
+        if (newSaved >= targetAmount) {
           toast.success(`🎉 Congratulations! You've reached your goal: ${goal.name}`);
         } else {
-          toast.success(`Added ₹${newAmount} to ${goal.name}`);
+          toast.success(`Added ₹${newAmount.toLocaleString()} to ${goal.name}`);
         }
 
         return updatedGoal;
@@ -122,8 +133,9 @@ const SavingsGoals = ({ goals, setGoals }) => {
     }));
   };
 
-  const totalSaved = goals.reduce((sum, goal) => sum + goal.saved, 0);
-  const totalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
+  // Safe calculations with fallbacks
+  const totalSaved = goals.reduce((sum, goal) => sum + (goal.saved || 0), 0);
+  const totalTarget = goals.reduce((sum, goal) => sum + (goal.target || 0), 0);
   const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
 
   return (
@@ -134,6 +146,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
           onClick={() => {
             setShowAddForm(true);
             setEditingGoal(null);
+            resetForm();
           }}
           className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all"
         >
@@ -156,7 +169,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
         <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
-            style={{ width: `${overallProgress}%` }}
+            style={{ width: `${Math.min(overallProgress, 100)}%` }}
           />
         </div>
         <div className="flex justify-between mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -168,7 +181,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="premium-card p-6 max-w-md w-full">
+          <div className="premium-card p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingGoal ? 'Edit Savings Goal' : 'Create Savings Goal'}
             </h3>
@@ -197,7 +210,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
                   onChange={(e) => setFormData({ 
                     ...formData, 
                     category: e.target.value,
-                    icon: goalIcons[e.target.value] 
+                    icon: goalIcons[e.target.value] || '🎯'
                   })}
                   className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                 >
@@ -231,7 +244,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Already Saved (₹) *
+                    Already Saved (₹)
                   </label>
                   <input
                     type="number"
@@ -241,7 +254,6 @@ const SavingsGoals = ({ goals, setGoals }) => {
                     min="0"
                     step="0.01"
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
-                    required
                   />
                 </div>
               </div>
@@ -291,90 +303,101 @@ const SavingsGoals = ({ goals, setGoals }) => {
             <p className="text-gray-400 dark:text-gray-500 mt-2">Create your first savings goal to start tracking!</p>
           </div>
         ) : (
-          goals.map((goal) => (
-            <div key={goal.id} className="premium-card p-6 hover:shadow-xl transition-all">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 flex items-center justify-center text-3xl">
-                    {goal.icon}
+          goals.map((goal) => {
+            // Safe values with fallbacks to prevent NaN
+            const savedAmount = goal.saved || 0;
+            const targetAmount = goal.target || 0;
+            const progress = targetAmount > 0 ? (savedAmount / targetAmount) * 100 : 0;
+            const goalIcon = goal.icon || '🎯';
+            const goalCategory = goal.category ? goal.category.charAt(0).toUpperCase() + goal.category.slice(1) : 'General';
+            
+            return (
+              <div key={goal.id} className="premium-card p-6 hover:shadow-xl transition-all">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 flex items-center justify-center text-3xl">
+                      {goalIcon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{goal.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {goalCategory}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{goal.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {goal.category?.charAt(0).toUpperCase() + goal.category?.slice(1)}
-                    </p>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleEdit(goal)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                      title="Edit goal"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(goal.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      title="Delete goal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleEdit(goal)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(goal.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {progress.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Saved</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                        ₹{savedAmount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Target</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        ₹{targetAmount.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {goal.deadline && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                      <Calendar className="w-4 h-4" />
+                      <span>Target: {new Date(goal.deadline).toLocaleDateString()}</span>
+                    </div>
+                  )}
+
+                  {/* Quick Add Savings */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        const amount = prompt('Enter amount to add:', '1000');
+                        if (amount) {
+                          handleAddSavings(goal.id, amount);
+                        }
+                      }}
+                      className="w-full py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:shadow-md transition-all text-sm font-medium"
+                    >
+                      <TrendingUp className="w-4 h-4 inline mr-2" />
+                      Add Savings
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    {goal.progress?.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(goal.progress || 0, 100)}%` }}
-                  />
-                </div>
-
-                <div className="flex justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Saved</p>
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                      ₹{goal.saved?.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Target</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                      ₹{goal.target?.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                {goal.deadline && (
-                  <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    <span>Target: {new Date(goal.deadline).toLocaleDateString()}</span>
-                  </div>
-                )}
-
-                {/* Quick Add Savings */}
-                <div className="mt-4">
-                  <button
-                    onClick={() => {
-                      const amount = prompt('Enter amount to add:', '1000');
-                      if (amount) {
-                        handleAddSavings(goal.id, amount);
-                      }
-                    }}
-                    className="w-full py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:shadow-md transition-all text-sm font-medium"
-                  >
-                    <TrendingUp className="w-4 h-4 inline mr-2" />
-                    Add Savings
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

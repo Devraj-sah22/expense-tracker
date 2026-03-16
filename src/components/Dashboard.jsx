@@ -9,37 +9,41 @@ import {
   Award,
   Users,
   CreditCard,
-  PiggyBank
+  PiggyBank,
+  Landmark
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] }) => {
+const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [], banks = [] }) => {
   // Calculate today's expenses
   const today = new Date();
   const todayExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate >= startOfDay(today) && expenseDate <= endOfDay(today);
-  }).reduce((sum, exp) => sum + exp.amount, 0);
+  }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   // Calculate monthly expenses
   const monthlyExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate >= startOfMonth(today) && expenseDate <= endOfMonth(today);
-  }).reduce((sum, exp) => sum + exp.amount, 0);
+  }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   // Calculate total income
-  const totalIncome = income.reduce((sum, inc) => sum + inc.amount, 0);
+  const totalIncome = income.reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-  // Calculate total balance
-  const totalBalance = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+  // Calculate total balance from wallets
+  const totalWalletBalance = wallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
+
+  // Calculate total bank balance
+  const totalBankBalance = banks.reduce((sum, bank) => sum + (bank.balance || 0), 0);
 
   // Calculate lend/loan totals
-  const totalLent = lends.reduce((sum, l) => sum + (l.status === 'pending' ? l.amount : 0), 0);
+  const totalLent = lends.reduce((sum, l) => sum + (l.status === 'pending' ? (l.amount || 0) : 0), 0);
   const totalBorrowed = loans.reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
   const netLend = totalLent - totalBorrowed;
 
   // Calculate budget progress
-  const monthlyBudgetProgress = (monthlyExpenses / budgets.monthly) * 100;
+  const monthlyBudgetProgress = budgets.monthly > 0 ? (monthlyExpenses / budgets.monthly) * 100 : 0;
 
   // Check for budget alerts
   useEffect(() => {
@@ -56,9 +60,9 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
   }, [monthlyBudgetProgress]);
 
   // Calculate daily spending score (1-10)
-  const spendingScore = Math.max(0, Math.min(10, 
-    10 - (todayExpenses / (budgets.daily / 10))
-  ));
+  const spendingScore = budgets.daily > 0 
+    ? Math.max(0, Math.min(10, 10 - (todayExpenses / (budgets.daily / 10))))
+    : 10;
 
   // Calculate financial health meter
   const savingsRate = totalIncome > 0 
@@ -85,18 +89,18 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
       icon: TrendingUp,
     },
     {
-      name: 'Total Balance',
-      value: `₹${totalBalance.toLocaleString()}`,
+      name: 'Wallet Balance',
+      value: `₹${totalWalletBalance.toLocaleString()}`,
       change: `${wallets.length} wallets`,
       changeType: 'neutral',
       icon: Wallet,
     },
     {
-      name: 'Budget Left',
-      value: `₹${(budgets.monthly - monthlyExpenses).toLocaleString()}`,
-      change: `${(100 - monthlyBudgetProgress).toFixed(1)}% remaining`,
-      changeType: monthlyBudgetProgress > 80 ? 'negative' : 'positive',
-      icon: Target,
+      name: 'Bank Balance',
+      value: `₹${totalBankBalance.toLocaleString()}`,
+      change: `${banks.length} accounts`,
+      changeType: 'neutral',
+      icon: Landmark,
     },
   ];
 
@@ -166,8 +170,8 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
         })}
       </div>
 
-      {/* Lend/Loan Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Lend/Loan/Bank Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="stat-card bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -199,6 +203,17 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
             <PiggyBank className="w-8 h-8 opacity-75" />
           </div>
           <p className="text-xs opacity-75 mt-2">{netLend >= 0 ? 'You are a lender' : 'You are a borrower'}</p>
+        </div>
+
+        <div className="stat-card bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm opacity-90">Bank Accounts</p>
+              <p className="text-2xl font-bold mt-2">{banks.length}</p>
+            </div>
+            <Landmark className="w-8 h-8 opacity-75" />
+          </div>
+          <p className="text-xs opacity-75 mt-2">Total: ₹{totalBankBalance.toLocaleString()}</p>
         </div>
       </div>
 
@@ -237,7 +252,7 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
 
       {/* Quick Actions - Wallets */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {wallets.map(wallet => (
+        {wallets.slice(0, 4).map(wallet => (
           <div key={wallet.id} className="premium-card p-4 text-center">
             <span className="text-3xl mb-2 block">{wallet.icon}</span>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{wallet.name}</p>
@@ -246,36 +261,28 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [] 
         ))}
       </div>
 
-      {/* Recent Lends and Loans Preview */}
-      {(lends.length > 0 || loans.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {lends.length > 0 && (
-            <div className="premium-card p-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                <Users className="w-4 h-4 mr-2" /> Recent Lends
-              </h4>
-              {lends.slice(0, 3).map(lend => (
-                <div key={lend.id} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{lend.personName}</span>
-                  <span className="text-sm font-semibold text-blue-600">₹{lend.amount}</span>
+      {/* Recent Banks Preview */}
+      {banks.length > 0 && (
+        <div className="premium-card p-4">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+            <Landmark className="w-4 h-4 mr-2" /> Your Bank Accounts
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {banks.slice(0, 4).map(bank => (
+              <div key={bank.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    🏦
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{bank.name}</p>
+                    <p className="text-xs text-gray-500">XXXX{bank.accountNumber?.slice(-4) || '****'}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-          
-          {loans.length > 0 && (
-            <div className="premium-card p-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
-                <CreditCard className="w-4 h-4 mr-2" /> Active Loans
-              </h4>
-              {loans.slice(0, 3).map(loan => (
-                <div key={loan.id} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{loan.lenderName}</span>
-                  <span className="text-sm font-semibold text-orange-600">₹{loan.remainingAmount}</span>
-                </div>
-              ))}
-            </div>
-          )}
+                <p className="text-sm font-semibold text-green-600">₹{(bank.balance || 0).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

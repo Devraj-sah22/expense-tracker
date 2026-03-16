@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Users, User, Phone, Mail, Calendar, DollarSign, Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Users, User, Phone, Calendar, DollarSign, Edit2, Trash2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -26,10 +26,22 @@ const LendTracker = ({ lends, setLends }) => {
       return;
     }
 
+    const amountValue = parseFloat(formData.amount) || 0;
+    if (amountValue <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
     const newLend = {
       id: editingLend?.id || Date.now().toString(),
-      ...formData,
-      amount: parseFloat(formData.amount),
+      personName: formData.personName,
+      personPhone: formData.personPhone || '',
+      amount: amountValue,
+      date: new Date(formData.date).toISOString(),
+      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
+      description: formData.description || '',
+      status: formData.status,
+      notes: formData.notes || '',
       createdAt: new Date().toISOString(),
     };
 
@@ -62,13 +74,13 @@ const LendTracker = ({ lends, setLends }) => {
   const handleEdit = (lend) => {
     setEditingLend(lend);
     setFormData({
-      personName: lend.personName,
+      personName: lend.personName || '',
       personPhone: lend.personPhone || '',
-      amount: lend.amount,
-      date: lend.date.split('T')[0],
+      amount: lend.amount?.toString() || '',
+      date: lend.date ? lend.date.split('T')[0] : new Date().toISOString().split('T')[0],
       dueDate: lend.dueDate ? lend.dueDate.split('T')[0] : '',
       description: lend.description || '',
-      status: lend.status,
+      status: lend.status || 'pending',
       notes: lend.notes || '',
     });
     setShowAddModal(true);
@@ -88,14 +100,17 @@ const LendTracker = ({ lends, setLends }) => {
     toast.success(`Marked as ${newStatus}`);
   };
 
+  // Safe calculations with fallbacks
   const filteredLends = lends.filter(lend => {
     if (filter === 'all') return true;
     return lend.status === filter;
   });
 
-  const totalLent = lends.reduce((sum, l) => sum + l.amount, 0);
-  const totalPending = lends.filter(l => l.status === 'pending').reduce((sum, l) => sum + l.amount, 0);
-  const totalRepaid = lends.filter(l => l.status === 'repaid').reduce((sum, l) => sum + l.amount, 0);
+  const totalLent = lends.reduce((sum, l) => sum + (l.amount || 0), 0);
+  const totalPending = lends.filter(l => l.status === 'pending')
+    .reduce((sum, l) => sum + (l.amount || 0), 0);
+  const totalRepaid = lends.filter(l => l.status === 'repaid')
+    .reduce((sum, l) => sum + (l.amount || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -123,6 +138,7 @@ const LendTracker = ({ lends, setLends }) => {
         <div className="stat-card bg-gradient-to-br from-yellow-500 to-orange-500 text-white">
           <p className="text-sm opacity-90">Pending</p>
           <p className="text-3xl font-bold mt-2">₹{totalPending.toLocaleString()}</p>
+          <p className="text-xs opacity-75 mt-1">{lends.filter(l => l.status === 'pending').length} pending loans</p>
         </div>
         <div className="stat-card bg-gradient-to-br from-green-500 to-emerald-500 text-white">
           <p className="text-sm opacity-90">Repaid</p>
@@ -303,76 +319,85 @@ const LendTracker = ({ lends, setLends }) => {
               <p className="text-gray-500 dark:text-gray-400">No lend records found</p>
             </div>
           ) : (
-            filteredLends.map((lend) => (
-              <div key={lend.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                      lend.status === 'repaid' 
-                        ? 'bg-green-100 dark:bg-green-900/30' 
-                        : 'bg-yellow-100 dark:bg-yellow-900/30'
-                    }`}>
-                      👤
+            filteredLends.map((lend) => {
+              const amount = lend.amount || 0;
+              const dueDate = lend.dueDate ? new Date(lend.dueDate) : null;
+              const isOverdue = dueDate && dueDate < new Date() && lend.status === 'pending';
+              
+              return (
+                <div key={lend.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        lend.status === 'repaid' 
+                          ? 'bg-green-100 dark:bg-green-900/30' 
+                          : isOverdue
+                          ? 'bg-red-100 dark:bg-red-900/30'
+                          : 'bg-yellow-100 dark:bg-yellow-900/30'
+                      }`}>
+                        👤
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{lend.personName}</h3>
+                        <div className="flex items-center space-x-3 mt-1">
+                          {lend.personPhone && (
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <Phone className="w-3 h-3 mr-1" /> {lend.personPhone}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500">
+                            {format(new Date(lend.date), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        {lend.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{lend.description}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{lend.personName}</h3>
-                      <div className="flex items-center space-x-3 mt-1">
-                        {lend.personPhone && (
-                          <span className="text-xs text-gray-500 flex items-center">
-                            <Phone className="w-3 h-3 mr-1" /> {lend.personPhone}
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">
+                        ₹{amount.toLocaleString()}
+                      </p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        {lend.status === 'pending' ? (
+                          <>
+                            <button
+                              onClick={() => handleStatusChange(lend.id, 'repaid')}
+                              className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                              title="Mark as repaid"
+                            >
+                              <CheckCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(lend)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                            >
+                              <Edit2 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(lend.id)}
+                              className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+                            Repaid
                           </span>
                         )}
-                        <span className="text-xs text-gray-500">
-                          {format(new Date(lend.date), 'MMM d, yyyy')}
-                        </span>
                       </div>
-                      {lend.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{lend.description}</p>
-                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      ₹{lend.amount.toLocaleString()}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      {lend.status === 'pending' ? (
-                        <>
-                          <button
-                            onClick={() => handleStatusChange(lend.id, 'repaid')}
-                            className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-                            title="Mark as repaid"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(lend)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
-                          >
-                            <Edit2 className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(lend.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
-                          Repaid
-                        </span>
-                      )}
+                  {dueDate && lend.status === 'pending' && (
+                    <div className={`mt-2 text-xs ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                      {isOverdue ? 'Overdue: ' : 'Due: '}
+                      {format(dueDate, 'MMM d, yyyy')}
                     </div>
-                  </div>
+                  )}
                 </div>
-                {lend.dueDate && lend.status === 'pending' && (
-                  <div className="mt-2 text-xs text-red-600 dark:text-red-400">
-                    Due: {format(new Date(lend.dueDate), 'MMM d, yyyy')}
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

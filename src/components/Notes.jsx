@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Pin, Tag, Calendar, Search, X, Save, Bell, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, Pin, Tag, Calendar, Search, X, Bell, Star, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -7,7 +7,7 @@ const Notes = ({ notes, setNotes }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState('all'); // all, pinned, recent
+  const [filter, setFilter] = useState('all');
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -16,35 +16,6 @@ const Notes = ({ notes, setNotes }) => {
     reminder: '',
     color: 'blue',
     tags: '',
-  });
-
-  const [localNotes, setLocalNotes] = useState(() => {
-    if (notes && notes.length > 0) {
-      return notes;
-    }
-    const saved = localStorage.getItem('notes');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: '1',
-        title: 'Welcome to Notes',
-        content: 'Use this space to jot down important financial reminders, goals, or ideas.',
-        category: 'personal',
-        isPinned: true,
-        color: 'blue',
-        tags: 'welcome,guide',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        title: 'Monthly Budget Review',
-        content: 'Remember to review your monthly budget on the last day of each month.',
-        category: 'financial',
-        isPinned: false,
-        color: 'green',
-        tags: 'budget,reminder',
-        createdAt: new Date().toISOString(),
-      },
-    ];
   });
 
   const categories = [
@@ -63,6 +34,35 @@ const Notes = ({ notes, setNotes }) => {
     { id: 'pink', bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-800', text: 'text-pink-700 dark:text-pink-300' },
   ];
 
+  const [localNotes, setLocalNotes] = useState(() => {
+    if (notes && notes.length > 0) {
+      return notes;
+    }
+    const saved = localStorage.getItem('notes');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: '1',
+        title: 'Welcome to Notes',
+        content: 'Use this space to jot down important financial reminders, goals, or ideas.',
+        category: 'personal',
+        isPinned: true,
+        color: 'blue',
+        tags: ['welcome', 'guide'],
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        title: 'Monthly Budget Review',
+        content: 'Remember to review your monthly budget on the last day of each month.',
+        category: 'financial',
+        isPinned: false,
+        color: 'green',
+        tags: ['budget', 'reminder'],
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  });
+
   useEffect(() => {
     if (setNotes) {
       setNotes(localNotes);
@@ -80,8 +80,13 @@ const Notes = ({ notes, setNotes }) => {
 
     const newNote = {
       id: editingNote?.id || Date.now().toString(),
-      ...formData,
+      title: formData.title,
+      content: formData.content,
+      category: formData.category,
+      isPinned: formData.isPinned,
+      color: formData.color,
       tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+      reminder: formData.reminder || null,
       createdAt: editingNote?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -114,8 +119,8 @@ const Notes = ({ notes, setNotes }) => {
   const handleEdit = (note) => {
     setEditingNote(note);
     setFormData({
-      title: note.title,
-      content: note.content,
+      title: note.title || '',
+      content: note.content || '',
       category: note.category || 'personal',
       isPinned: note.isPinned || false,
       reminder: note.reminder ? note.reminder.split('T')[0] : '',
@@ -161,7 +166,12 @@ const Notes = ({ notes, setNotes }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notes</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Notes</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {localNotes.length} total notes • {pinnedNotes.length} pinned
+          </p>
+        </div>
         <button
           onClick={() => {
             setEditingNote(null);
@@ -363,7 +373,7 @@ const Notes = ({ notes, setNotes }) => {
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
             <Pin className="w-5 h-5 mr-2 text-purple-500" />
-            Pinned Notes
+            Pinned Notes ({pinnedNotes.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pinnedNotes.map(note => {
@@ -384,6 +394,7 @@ const Notes = ({ notes, setNotes }) => {
                       <button
                         onClick={() => togglePin(note.id)}
                         className="p-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+                        title="Unpin"
                       >
                         <Star className="w-4 h-4 fill-current" />
                       </button>
@@ -455,6 +466,7 @@ const Notes = ({ notes, setNotes }) => {
                       <button
                         onClick={() => togglePin(note.id)}
                         className="p-1 text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded"
+                        title="Pin note"
                       >
                         <Pin className="w-4 h-4" />
                       </button>
@@ -486,7 +498,15 @@ const Notes = ({ notes, setNotes }) => {
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{category.icon} {category.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span>{category.icon} {category.name}</span>
+                      {note.reminder && (
+                        <span className="flex items-center">
+                          <Bell className="w-3 h-3 mr-1" />
+                          {format(new Date(note.reminder), 'MMM d')}
+                        </span>
+                      )}
+                    </div>
                     <span>{format(new Date(note.createdAt), 'MMM d, yyyy')}</span>
                   </div>
                 </div>
@@ -498,7 +518,7 @@ const Notes = ({ notes, setNotes }) => {
 
       {filteredNotes.length === 0 && (
         <div className="premium-card p-12 text-center">
-          <div className="text-6xl mb-4">📝</div>
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No notes found</h3>
           <p className="text-gray-500 dark:text-gray-400">
             {searchTerm ? 'Try a different search term' : 'Create your first note to get started'}
