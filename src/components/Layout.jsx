@@ -21,6 +21,7 @@ import {
   Tag,
   FileText,
   Landmark,
+  Percent,
 } from 'lucide-react';
 
 const navigation = [
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Banks', path: '/banks', icon: Landmark },
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Budget', path: '/budget', icon: Target },
+  { name: 'Interest', path: '/interest', icon: Percent },
   { name: 'Analytics', path: '/charts', icon: PieChart },
   { name: 'Notes', path: '/notes', icon: FileText },
   { name: 'Export', path: '/export', icon: Download },

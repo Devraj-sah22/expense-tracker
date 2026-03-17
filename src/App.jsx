@@ -18,6 +18,7 @@ import LoanTracker from './components/LoanTracker';
 import Categories from './components/Categories';
 import Notes from './components/Notes';
 import BankStatements from './components/BankStatements';
+import InterestCalculator from './components/InterestCalculator';
 
 function App() {
   // Expenses State
@@ -350,6 +351,16 @@ function App() {
                 setBanks={setBanks}
                 transactions={bankTransactions}
                 setTransactions={setBankTransactions}
+              />
+            } />
+            
+            {/* Interest Calculator Route */}
+            <Route path="interest" element={
+              <InterestCalculator 
+                lends={lends}
+                setLends={setLends}
+                loans={loans}
+                setLoans={setLoans}
               />
             } />
             
