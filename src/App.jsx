@@ -174,8 +174,8 @@ function App() {
     setExpenses([newExpense, ...expenses]);
 
     // Update wallet balance
-    setWallets(wallets.map(wallet => 
-      wallet.id === expense.walletId 
+    setWallets(wallets.map(wallet =>
+      wallet.id === expense.walletId
         ? { ...wallet, balance: wallet.balance - expense.amount }
         : wallet
     ));
@@ -184,8 +184,8 @@ function App() {
   const deleteExpense = (id) => {
     const expense = expenses.find(e => e.id === id);
     if (expense) {
-      setWallets(wallets.map(wallet => 
-        wallet.id === expense.walletId 
+      setWallets(wallets.map(wallet =>
+        wallet.id === expense.walletId
           ? { ...wallet, balance: wallet.balance + expense.amount }
           : wallet
       ));
@@ -202,7 +202,7 @@ function App() {
         }
         return wallet;
       }));
-      
+
       setWallets(wallets.map(wallet => {
         if (wallet.id === updatedExpense.walletId) {
           return { ...wallet, balance: wallet.balance - updatedExpense.amount };
@@ -210,8 +210,8 @@ function App() {
         return wallet;
       }));
     }
-    
-    setExpenses(expenses.map(e => 
+
+    setExpenses(expenses.map(e =>
       e.id === id ? { ...updatedExpense, id, date: new Date(updatedExpense.date).toISOString() } : e
     ));
   };
@@ -219,7 +219,7 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             className: 'dark:bg-gray-800 dark:text-white',
@@ -241,11 +241,11 @@ function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            
+
             {/* Dashboard Route */}
             <Route path="dashboard" element={
-              <Dashboard 
-                expenses={expenses} 
+              <Dashboard
+                expenses={expenses}
                 wallets={wallets}
                 income={income}
                 budgets={budgets}
@@ -254,119 +254,128 @@ function App() {
                 banks={banks}
               />
             } />
-            
+
             {/* Expenses Routes */}
             <Route path="expenses" element={
+              <ExpenseList
+                expenses={expenses}
+                onDelete={deleteExpense}
+                onEdit={editExpense}
+                onImport={setExpenses}  // Add this line
+                wallets={wallets}
+              />
+            } />
+            {/* <Route path="expenses" element={
               <ExpenseList 
                 expenses={expenses}
                 onDelete={deleteExpense}
                 onEdit={editExpense}
                 wallets={wallets}
               />
-            } />
-            
+            } /> */}
+
             <Route path="add-expense" element={
-              <AddExpense 
+              <AddExpense
                 onAddExpense={addExpense}
                 wallets={wallets}
               />
             } />
-            
+
             {/* Analytics Route */}
             <Route path="charts" element={
               <Charts expenses={expenses} />
             } />
-            
+
             {/* Budget Route */}
             <Route path="budget" element={
-              <BudgetTracker 
+              <BudgetTracker
                 expenses={expenses}
                 budgets={budgets}
                 setBudgets={setBudgets}
               />
             } />
-            
+
             {/* Wallets Route */}
             <Route path="wallets" element={
-              <MultiWallet 
+              <MultiWallet
                 wallets={wallets}
                 setWallets={setWallets}
               />
             } />
-            
+
             {/* Income Route */}
             <Route path="income" element={
-              <IncomeTracker 
+              <IncomeTracker
                 income={income}
                 setIncome={setIncome}
                 expenses={expenses}
               />
             } />
-            
+
             {/* Savings Goals Route */}
             <Route path="savings" element={
-              <SavingsGoals 
+              <SavingsGoals
                 goals={savingsGoals}
                 setGoals={setSavingsGoals}
               />
             } />
-            
+
             {/* Lend Tracker Route */}
             <Route path="lend" element={
-              <LendTracker 
+              <LendTracker
                 lends={lends}
                 setLends={setLends}
               />
             } />
-            
+
             {/* Loan Tracker Route */}
             <Route path="loan" element={
-              <LoanTracker 
+              <LoanTracker
                 loans={loans}
                 setLoans={setLoans}
               />
             } />
-            
+
             {/* Categories Route */}
             <Route path="categories" element={
-              <Categories 
+              <Categories
                 categories={categories}
                 setCategories={setCategories}
                 expenses={expenses}
               />
             } />
-            
+
             {/* Notes Route */}
             <Route path="notes" element={
-              <Notes 
+              <Notes
                 notes={notes}
                 setNotes={setNotes}
               />
             } />
-            
+
             {/* Bank Statements Route */}
             <Route path="banks" element={
-              <BankStatements 
+              <BankStatements
                 banks={banks}
                 setBanks={setBanks}
                 transactions={bankTransactions}
                 setTransactions={setBankTransactions}
               />
             } />
-            
+
             {/* Interest Calculator Route */}
             <Route path="interest" element={
-              <InterestCalculator 
+              <InterestCalculator
                 lends={lends}
                 setLends={setLends}
                 loans={loans}
                 setLoans={setLoans}
               />
             } />
-            
+
             {/* Export Data Route */}
             <Route path="export" element={
-              <ExportData 
+              <ExportData
                 expenses={expenses}
                 income={income}
                 wallets={wallets}
@@ -375,7 +384,7 @@ function App() {
                 setIncome={setIncome}
               />
             } />
-            
+
             {/* Settings Route */}
             <Route path="settings" element={<Settings />} />
           </Route>

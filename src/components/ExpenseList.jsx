@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Search, Filter, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ImportExport from './ImportExport';
 
 const categories = {
   food: { name: 'Food', icon: '🍔', color: 'orange' },
@@ -21,10 +22,51 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
   const [sortBy, setSortBy] = useState('date-desc');
   const [editingExpense, setEditingExpense] = useState(null);
 
+  // Import/Export configuration
+  const expenseFields = [
+    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
+    { label: 'Category', key: 'category' },
+    { label: 'Description', key: 'description' },
+    { label: 'Amount', key: 'amount' },
+    { label: 'Payment Method', key: 'paymentMethod' },
+    { label: 'Wallet', key: 'walletId', value: (item) => wallets.find(w => w.id === item.walletId)?.name || '' },
+  ];
+
+  const expenseTemplate = [
+    {
+      Date: '2024-01-15',
+      Category: 'Food',
+      Description: 'Lunch at restaurant',
+      Amount: 500,
+      'Payment Method': 'cash',
+      Wallet: 'Cash'
+    }
+  ];
+
+  const handleExpenseImport = (importedData) => {
+    const newExpenses = importedData.map((row, index) => ({
+      id: Date.now() + index,
+      amount: parseFloat(row.Amount || row.amount || 0) || 0,
+      category: (row.Category || row.category || 'other').toLowerCase(),
+      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      description: row.Description || row.description || '',
+      paymentMethod: (row['Payment Method'] || row.paymentMethod || 'cash').toLowerCase(),
+      walletId: wallets.find(w => w.name.toLowerCase() === (row.Wallet || '').toLowerCase())?.id || wallets[0]?.id,
+    }));
+
+    // Add new expenses to existing ones
+    const updatedExpenses = [...newExpenses, ...expenses];
+    // You'll need to pass this up to parent component
+    // This requires modifying the parent component
+    if (typeof onImport === 'function') {
+      onImport(updatedExpenses);
+    }
+  };
+
   const filteredExpenses = expenses
     .filter(expense => {
       const matchesSearch = expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           expense.amount.toString().includes(searchTerm);
+        expense.amount.toString().includes(searchTerm);
       const matchesCategory = filterCategory === 'all' || expense.category === filterCategory;
       const matchesWallet = filterWallet === 'all' || expense.walletId === filterWallet;
       return matchesSearch && matchesCategory && matchesWallet;
@@ -72,11 +114,31 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header 
       <div className="premium-card p-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           Expense History
-        </h2>
+        </h2>*/}
+      {/* Header with Import/Export */}
+      <div className="premium-card p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Expense History
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {expenses.length} total transactions
+            </p>
+          </div>
+          <ImportExport
+            data={expenses}
+            onImport={handleExpenseImport}
+            moduleName="Expenses"
+            fields={expenseFields}
+            templateData={expenseTemplate}
+            fileName="expenses"
+          />
+        </div>
 
         {/* Search and Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -146,7 +208,7 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
             filteredExpenses.map((expense) => {
               const category = getCategoryInfo(expense.category);
               const wallet = getWalletInfo(expense.walletId);
-              
+
               return (
                 <div key={expense.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   {editingExpense?.id === expense.id ? (

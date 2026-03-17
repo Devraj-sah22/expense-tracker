@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, TrendingUp, Edit2, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import ImportExport from './ImportExport';
 
 const incomeSources = [
   { id: 'salary', name: 'Salary', icon: '💼', color: 'blue' },
@@ -24,10 +25,41 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
     isRecurring: false,
     recurringInterval: 'monthly',
   });
+  // Import/Export configuration
+  const incomeFields = [
+    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
+    { label: 'Source', key: 'source' },
+    { label: 'Description', key: 'description' },
+    { label: 'Amount', key: 'amount' },
+    { label: 'Recurring', key: 'isRecurring', value: (item) => item.isRecurring ? 'Yes' : 'No' },
+  ];
+
+  const incomeTemplate = [
+    {
+      Date: '2024-01-15',
+      Source: 'Salary',
+      Description: 'Monthly salary',
+      Amount: 50000,
+      Recurring: 'Yes'
+    }
+  ];
+
+  const handleIncomeImport = (importedData) => {
+    const newIncome = importedData.map((row, index) => ({
+      id: Date.now() + index,
+      amount: parseFloat(row.Amount || row.amount || 0) || 0,
+      source: (row.Source || row.source || 'other').toLowerCase(),
+      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      description: row.Description || row.description || '',
+      isRecurring: (row.Recurring || '').toLowerCase() === 'yes',
+    }));
+
+    setIncome([...newIncome, ...income]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!formData.amount || !formData.source) {
       toast.error('Please fill in all required fields');
       return;
@@ -99,6 +131,42 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Income Tracker</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {income.length} total income records
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <ImportExport
+            data={income}
+            onImport={handleIncomeImport}
+            moduleName="Income"
+            fields={incomeFields}
+            templateData={incomeTemplate}
+            fileName="income"
+          />
+          <button
+            onClick={() => {
+              setShowAddForm(true);
+              setEditingIncome(null);
+              setFormData({
+                amount: '',
+                source: 'salary',
+                date: new Date().toISOString().split('T')[0],
+                description: '',
+                isRecurring: false,
+                recurringInterval: 'monthly',
+              });
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-xl hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Income</span>
+          </button>
+        </div>
+      </div>
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Income Tracker</h2>
         <button
           onClick={() => {
@@ -118,7 +186,7 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
           <Plus className="w-5 h-5" />
           <span>Add Income</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -126,17 +194,16 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
           <p className="text-sm opacity-90">Total Income</p>
           <p className="text-3xl font-bold mt-2">₹{totalIncome.toLocaleString()}</p>
         </div>
-        
+
         <div className="stat-card bg-gradient-to-br from-blue-500 to-purple-500 text-white">
           <p className="text-sm opacity-90">Total Expenses</p>
           <p className="text-3xl font-bold mt-2">₹{totalExpenses.toLocaleString()}</p>
         </div>
-        
-        <div className={`stat-card ${
-          savings >= 0 
-            ? 'bg-gradient-to-br from-emerald-500 to-green-500' 
-            : 'bg-gradient-to-br from-red-500 to-pink-500'
-        } text-white`}>
+
+        <div className={`stat-card ${savings >= 0
+          ? 'bg-gradient-to-br from-emerald-500 to-green-500'
+          : 'bg-gradient-to-br from-red-500 to-pink-500'
+          } text-white`}>
           <p className="text-sm opacity-90">Net Savings</p>
           <p className="text-3xl font-bold mt-2">₹{savings.toLocaleString()}</p>
           <p className="text-xs opacity-90 mt-1">Savings Rate: {savingsRate}%</p>
@@ -150,7 +217,7 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingIncome ? 'Edit Income' : 'Add New Income'}
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

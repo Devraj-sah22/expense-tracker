@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Users, User, Phone, Calendar, DollarSign, Edit2, Trash2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import ImportExport from './ImportExport';
 
 const LendTracker = ({ lends, setLends }) => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -17,10 +18,49 @@ const LendTracker = ({ lends, setLends }) => {
     status: 'pending',
     notes: '',
   });
+  // Import/Export configuration
+  const lendFields = [
+    { label: 'Person Name', key: 'personName' },
+    { label: 'Phone', key: 'personPhone' },
+    { label: 'Amount', key: 'amount' },
+    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
+    { label: 'Due Date', key: 'dueDate', value: (item) => item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '' },
+    { label: 'Status', key: 'status' },
+    { label: 'Description', key: 'description' },
+  ];
+
+  const lendTemplate = [
+    {
+      'Person Name': 'John Doe',
+      Phone: '1234567890',
+      Amount: 5000,
+      Date: '2024-01-15',
+      'Due Date': '2024-02-15',
+      Status: 'pending',
+      Description: 'Emergency loan'
+    }
+  ];
+
+  const handleLendImport = (importedData) => {
+    const newLends = importedData.map((row, index) => ({
+      id: Date.now() + index,
+      personName: row['Person Name'] || row.personName || '',
+      personPhone: row.Phone || row.personPhone || '',
+      amount: parseFloat(row.Amount || row.amount || 0) || 0,
+      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      dueDate: row['Due Date'] || row.dueDate ? new Date(row['Due Date'] || row.dueDate).toISOString() : null,
+      status: (row.Status || row.status || 'pending').toLowerCase(),
+      description: row.Description || row.description || '',
+      notes: '',
+      createdAt: new Date().toISOString(),
+    }));
+
+    setLends([...newLends, ...lends]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!formData.personName || !formData.amount) {
       toast.error('Please fill in required fields');
       return;
@@ -94,7 +134,7 @@ const LendTracker = ({ lends, setLends }) => {
   };
 
   const handleStatusChange = (id, newStatus) => {
-    setLends(lends.map(l => 
+    setLends(lends.map(l =>
       l.id === id ? { ...l, status: newStatus } : l
     ));
     toast.success(`Marked as ${newStatus}`);
@@ -115,6 +155,35 @@ const LendTracker = ({ lends, setLends }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Lend Tracker</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {lends.length} total records • ₹{totalLent.toLocaleString()} lent
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <ImportExport
+            data={lends}
+            onImport={handleLendImport}
+            moduleName="Lends"
+            fields={lendFields}
+            templateData={lendTemplate}
+            fileName="lends"
+          />
+          <button
+            onClick={() => {
+              setEditingLend(null);
+              resetForm();
+              setShowAddModal(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Lend Record</span>
+          </button>
+        </div>
+      </div>
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Lend Tracker</h2>
         <button
           onClick={() => {
@@ -127,7 +196,7 @@ const LendTracker = ({ lends, setLends }) => {
           <Plus className="w-5 h-5" />
           <span>Add Lend Record</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -152,11 +221,10 @@ const LendTracker = ({ lends, setLends }) => {
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-xl capitalize transition-all ${
-              filter === status
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-xl capitalize transition-all ${filter === status
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             {status} ({lends.filter(l => status === 'all' ? true : l.status === status).length})
           </button>
@@ -170,7 +238,7 @@ const LendTracker = ({ lends, setLends }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingLend ? 'Edit Lend Record' : 'Add New Lend Record'}
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
@@ -323,18 +391,17 @@ const LendTracker = ({ lends, setLends }) => {
               const amount = lend.amount || 0;
               const dueDate = lend.dueDate ? new Date(lend.dueDate) : null;
               const isOverdue = dueDate && dueDate < new Date() && lend.status === 'pending';
-              
+
               return (
                 <div key={lend.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                        lend.status === 'repaid' 
-                          ? 'bg-green-100 dark:bg-green-900/30' 
-                          : isOverdue
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${lend.status === 'repaid'
+                        ? 'bg-green-100 dark:bg-green-900/30'
+                        : isOverdue
                           ? 'bg-red-100 dark:bg-red-900/30'
                           : 'bg-yellow-100 dark:bg-yellow-900/30'
-                      }`}>
+                        }`}>
                         👤
                       </div>
                       <div>

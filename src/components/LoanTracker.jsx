@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, CreditCard, Calendar, DollarSign, Edit2, Trash2, Building, Percent, Home, Car, Briefcase, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import ImportExport from './ImportExport';
 
 const LoanTracker = ({ loans, setLoans }) => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -20,6 +21,52 @@ const LoanTracker = ({ loans, setLoans }) => {
     status: 'active',
     notes: '',
   });
+  // Import/Export configuration
+  const loanFields = [
+    { label: 'Lender Name', key: 'lenderName' },
+    { label: 'Loan Type', key: 'loanType' },
+    { label: 'Principal', key: 'principalAmount' },
+    { label: 'Interest Rate', key: 'interestRate' },
+    { label: 'Start Date', key: 'startDate', value: (item) => new Date(item.startDate).toLocaleDateString() },
+    { label: 'Paid Amount', key: 'paidAmount' },
+    { label: 'Remaining', key: 'remainingAmount' },
+    { label: 'Status', key: 'status' },
+  ];
+
+  const loanTemplate = [
+    {
+      'Lender Name': 'SBI Bank',
+      'Loan Type': 'personal',
+      'Principal': 100000,
+      'Interest Rate': 10.5,
+      'Start Date': '2024-01-15',
+      'Paid Amount': 20000,
+      'Status': 'active'
+    }
+  ];
+
+  const handleLoanImport = (importedData) => {
+    const newLoans = importedData.map((row, index) => {
+      const principal = parseFloat(row.Principal || row.principal || 0) || 0;
+      const paid = parseFloat(row['Paid Amount'] || row.paidAmount || 0) || 0;
+
+      return {
+        id: Date.now() + index,
+        lenderName: row['Lender Name'] || row.lenderName || '',
+        loanType: (row['Loan Type'] || row.loanType || 'personal').toLowerCase(),
+        principalAmount: principal,
+        interestRate: parseFloat(row['Interest Rate'] || row.interestRate || 0) || 0,
+        startDate: row['Start Date'] || row.startDate ? new Date(row['Start Date'] || row.startDate).toISOString() : new Date().toISOString(),
+        paidAmount: paid,
+        remainingAmount: principal - paid,
+        status: (row.Status || row.status || 'active').toLowerCase(),
+        progress: principal > 0 ? (paid / principal) * 100 : 0,
+        notes: '',
+      };
+    });
+
+    setLoans([...newLoans, ...loans]);
+  };
 
   const loanTypes = [
     { id: 'personal', name: 'Personal Loan', icon: '💳', iconComp: CreditCard },
@@ -32,7 +79,7 @@ const LoanTracker = ({ loans, setLoans }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!formData.lenderName || !formData.principalAmount) {
       toast.error('Please fill in required fields');
       return;
@@ -133,9 +180,9 @@ const LoanTracker = ({ loans, setLoans }) => {
         const newPaid = currentPaid + paymentAmount;
         const newRemaining = Math.max(principal - newPaid, 0);
         const newStatus = newRemaining <= 0 ? 'closed' : loan.status;
-        
+
         toast.success(`Payment of ₹${paymentAmount.toLocaleString()} recorded`);
-        
+
         return {
           ...loan,
           paidAmount: newPaid,
@@ -161,6 +208,35 @@ const LoanTracker = ({ loans, setLoans }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Loan Tracker</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {loans.length} total loans • ₹{totalRemaining.toLocaleString()} remaining
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <ImportExport
+            data={loans}
+            onImport={handleLoanImport}
+            moduleName="Loans"
+            fields={loanFields}
+            templateData={loanTemplate}
+            fileName="loans"
+          />
+          <button
+            onClick={() => {
+              setEditingLoan(null);
+              resetForm();
+              setShowAddModal(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Loan</span>
+          </button>
+        </div>
+      </div>
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Loan Tracker</h2>
         <button
           onClick={() => {
@@ -173,7 +249,7 @@ const LoanTracker = ({ loans, setLoans }) => {
           <Plus className="w-5 h-5" />
           <span>Add Loan</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -198,11 +274,10 @@ const LoanTracker = ({ loans, setLoans }) => {
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-xl capitalize transition-all ${
-              filter === status
-                ? 'bg-purple-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-xl capitalize transition-all ${filter === status
+              ? 'bg-purple-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             {status} ({loans.filter(l => status === 'all' ? true : l.status === status).length})
           </button>
@@ -216,7 +291,7 @@ const LoanTracker = ({ loans, setLoans }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingLoan ? 'Edit Loan' : 'Add New Loan'}
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
@@ -246,11 +321,10 @@ const LoanTracker = ({ loans, setLoans }) => {
                           key={type.id}
                           type="button"
                           onClick={() => setFormData({ ...formData, loanType: type.id })}
-                          className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center ${
-                            formData.loanType === type.id
-                              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                              : 'border-gray-200 dark:border-gray-700'
-                          }`}
+                          className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center ${formData.loanType === type.id
+                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                            : 'border-gray-200 dark:border-gray-700'
+                            }`}
                         >
                           <Icon className="w-5 h-5 mb-1" />
                           <span className="text-xs">{type.name}</span>
@@ -422,23 +496,22 @@ const LoanTracker = ({ loans, setLoans }) => {
           filteredLoans.map((loan) => {
             const loanType = loanTypes.find(t => t.id === loan.loanType) || loanTypes[5];
             const Icon = loanType.iconComp;
-            
+
             // Safe values with fallbacks
             const principalAmount = loan.principalAmount || 0;
             const paidAmount = loan.paidAmount || 0;
             const remainingAmount = loan.remainingAmount || 0;
             const progress = principalAmount > 0 ? (paidAmount / principalAmount) * 100 : 0;
             const emiAmount = loan.emiAmount || 0;
-            
+
             return (
               <div key={loan.id} className="premium-card p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl ${
-                      loan.status === 'active'
-                        ? 'bg-purple-100 dark:bg-purple-900/30'
-                        : 'bg-green-100 dark:bg-green-900/30'
-                    }`}>
+                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl ${loan.status === 'active'
+                      ? 'bg-purple-100 dark:bg-purple-900/30'
+                      : 'bg-green-100 dark:bg-green-900/30'
+                      }`}>
                       <Icon className="w-6 h-6" />
                     </div>
                     <div>

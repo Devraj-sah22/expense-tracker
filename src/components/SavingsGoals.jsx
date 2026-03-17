@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Target, Edit2, Trash2, TrendingUp, Calendar, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ImportExport from './ImportExport';
 
 const SavingsGoals = ({ goals, setGoals }) => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -24,10 +25,50 @@ const SavingsGoals = ({ goals, setGoals }) => {
     emergency: '🆘',
     retirement: '👴',
   };
+  // Import/Export configuration
+  const goalFields = [
+    { label: 'Goal Name', key: 'name' },
+    { label: 'Target Amount', key: 'target' },
+    { label: 'Saved Amount', key: 'saved' },
+    { label: 'Category', key: 'category' },
+    { label: 'Deadline', key: 'deadline', value: (item) => item.deadline ? new Date(item.deadline).toLocaleDateString() : '' },
+    { label: 'Progress', key: 'progress', value: (item) => `${item.progress?.toFixed(1)}%` },
+  ];
+
+  const goalTemplate = [
+    {
+      'Goal Name': 'Buy Laptop',
+      'Target Amount': 60000,
+      'Saved Amount': 18000,
+      'Category': 'laptop',
+      'Deadline': '2024-12-31'
+    }
+  ];
+
+  const handleGoalImport = (importedData) => {
+    const newGoals = importedData.map((row, index) => {
+      const target = parseFloat(row['Target Amount'] || row.target || 0) || 0;
+      const saved = parseFloat(row['Saved Amount'] || row.saved || 0) || 0;
+
+      return {
+        id: Date.now() + index,
+        name: row['Goal Name'] || row.name || '',
+        target: target,
+        saved: saved,
+        category: (row.Category || row.category || 'general').toLowerCase(),
+        deadline: row.Deadline || row.deadline || null,
+        icon: goalIcons[(row.Category || 'general').toLowerCase()] || '🎯',
+        progress: target > 0 ? (saved / target) * 100 : 0,
+        createdAt: new Date().toISOString(),
+      };
+    });
+
+    setGoals([...newGoals, ...goals]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.target) {
       toast.error('Please fill in all required fields');
       return;
@@ -109,12 +150,12 @@ const SavingsGoals = ({ goals, setGoals }) => {
         const currentSaved = goal.saved || 0;
         const newSaved = currentSaved + newAmount;
         const targetAmount = goal.target || 0;
-        
+
         if (newSaved > targetAmount) {
           toast.error('Cannot exceed target amount');
           return goal;
         }
-        
+
         const updatedGoal = {
           ...goal,
           saved: newSaved,
@@ -141,6 +182,35 @@ const SavingsGoals = ({ goals, setGoals }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {goals.length} total goals • ₹{totalSaved.toLocaleString()} saved
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <ImportExport
+            data={goals}
+            onImport={handleGoalImport}
+            moduleName="Savings Goals"
+            fields={goalFields}
+            templateData={goalTemplate}
+            fileName="savings-goals"
+          />
+          <button
+            onClick={() => {
+              setShowAddForm(true);
+              setEditingGoal(null);
+              resetForm();
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>New Goal</span>
+          </button>
+        </div>
+      </div>
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Savings Goals</h2>
         <button
           onClick={() => {
@@ -153,7 +223,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
           <Plus className="w-5 h-5" />
           <span>New Goal</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Overall Progress */}
       <div className="premium-card p-6">
@@ -185,7 +255,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingGoal ? 'Edit Savings Goal' : 'Create Savings Goal'}
             </h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -207,8 +277,8 @@ const SavingsGoals = ({ goals, setGoals }) => {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
+                  onChange={(e) => setFormData({
+                    ...formData,
                     category: e.target.value,
                     icon: goalIcons[e.target.value] || '🎯'
                   })}
@@ -310,7 +380,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
             const progress = targetAmount > 0 ? (savedAmount / targetAmount) * 100 : 0;
             const goalIcon = goal.icon || '🎯';
             const goalCategory = goal.category ? goal.category.charAt(0).toUpperCase() + goal.category.slice(1) : 'General';
-            
+
             return (
               <div key={goal.id} className="premium-card p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start justify-between mb-4">

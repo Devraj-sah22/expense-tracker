@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Building, 
-  CreditCard, 
-  Landmark, 
-  Wallet, 
-  Download, 
-  Upload, 
-  Eye, 
+import {
+  Plus,
+  Building,
+  CreditCard,
+  Landmark,
+  Wallet,
+  Download,
+  Upload,
+  Eye,
   EyeOff,
-  Edit2, 
-  Trash2, 
+  Edit2,
+  Trash2,
   Calendar,
   DollarSign,
   TrendingUp,
@@ -18,6 +18,7 @@ import {
   FileText,
   RefreshCw
 } from 'lucide-react';
+import ImportExport from './ImportExport';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
@@ -74,6 +75,90 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
     { id: 'transfer', name: 'Transfer', icon: '🔄' },
     { id: 'others', name: 'Others', icon: '📦' },
   ];
+  // Import/Export configuration for Banks
+  const bankFields = [
+    { label: 'Bank Name', key: 'name' },
+    { label: 'Account Number', key: 'accountNumber' },
+    { label: 'Account Type', key: 'accountType' },
+    { label: 'Branch', key: 'branch' },
+    { label: 'IFSC Code', key: 'ifscCode' },
+    { label: 'Balance', key: 'balance' },
+    { label: 'Opening Date', key: 'openingDate', value: (item) => new Date(item.openingDate).toLocaleDateString() },
+  ];
+
+  const bankTemplate = [
+    {
+      'Bank Name': 'State Bank of India',
+      'Account Number': '1234567890',
+      'Account Type': 'savings',
+      'Branch': 'Main Branch',
+      'IFSC Code': 'SBIN000123',
+      'Balance': 50000,
+      'Opening Date': '2024-01-01'
+    }
+  ];
+
+  // Transaction fields for import/export
+  const transactionFields = [
+    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
+    { label: 'Description', key: 'description' },
+    { label: 'Amount', key: 'amount' },
+    { label: 'Type', key: 'type' },
+    { label: 'Category', key: 'category' },
+    { label: 'Reference', key: 'reference' },
+    { label: 'Bank', key: 'bankId', value: (item) => localBanks.find(b => b.id === item.bankId)?.name || '' },
+  ];
+
+  const transactionTemplate = [
+    {
+      Date: '2024-01-15',
+      Description: 'Salary Credit',
+      Amount: 50000,
+      Type: 'credit',
+      Category: 'salary',
+      Reference: '123456',
+      Bank: 'State Bank of India'
+    }
+  ];
+
+  // Import handlers
+  const handleBankImport = (importedData) => {
+    const newBanks = importedData.map((row, index) => ({
+      id: Date.now() + index,
+      name: row['Bank Name'] || row.name || '',
+      accountNumber: row['Account Number'] || row.accountNumber || '',
+      accountType: (row['Account Type'] || row.accountType || 'savings').toLowerCase(),
+      branch: row.Branch || row.branch || '',
+      ifscCode: row['IFSC Code'] || row.ifscCode || '',
+      balance: parseFloat(row.Balance || row.balance || 0) || 0,
+      openingDate: row['Opening Date'] || row.openingDate ? new Date(row['Opening Date'] || row.openingDate).toISOString() : new Date().toISOString(),
+      currency: 'INR',
+      notes: '',
+      createdAt: new Date().toISOString(),
+    }));
+
+    setLocalBanks([...newBanks, ...localBanks]);
+  };
+
+  const handleTransactionImport = (importedData) => {
+    const newTransactions = importedData.map((row, index) => {
+      const bank = localBanks.find(b => b.name.toLowerCase() === (row.Bank || '').toLowerCase());
+      return {
+        id: Date.now() + index,
+        bankId: bank?.id || localBanks[0]?.id,
+        date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+        description: row.Description || row.description || '',
+        amount: parseFloat(row.Amount || row.amount || 0) || 0,
+        type: (row.Type || row.type || 'debit').toLowerCase(),
+        category: (row.Category || row.category || 'others').toLowerCase(),
+        reference: row.Reference || row.reference || '',
+        notes: row.Notes || row.notes || '',
+        createdAt: new Date().toISOString(),
+      };
+    });
+
+    setLocalTransactions([...newTransactions, ...localTransactions]);
+  };
 
   const [localBanks, setLocalBanks] = useState(() => {
     if (banks && banks.length > 0) {
@@ -107,7 +192,7 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
 
   const handleBankSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!bankFormData.name || !bankFormData.accountNumber || !bankFormData.balance) {
       toast.error('Please fill in required fields');
       return;
@@ -178,7 +263,7 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
 
   const handleTransactionSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!selectedBank || !transactionFormData.description || !transactionFormData.amount) {
       toast.error('Please fill in required fields');
       return;
@@ -283,8 +368,8 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
       .filter(t => {
         if (t.bankId !== bankId) return false;
         const txDate = new Date(t.date);
-        return txDate.getFullYear() === parseInt(year) && 
-               txDate.getMonth() === parseInt(month) - 1;
+        return txDate.getFullYear() === parseInt(year) &&
+          txDate.getMonth() === parseInt(month) - 1;
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   };
@@ -377,6 +462,71 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Bank Statements</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {localBanks.length} banks • {localTransactions.length} transactions
+          </p>
+        </div>
+        <div className="flex items-center space-x-3">
+          {/* View mode toggle */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 mr-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+                }`}
+            >
+              <Building className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
+                }`}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Import/Export for Banks */}
+          <ImportExport
+            data={localBanks}
+            onImport={handleBankImport}
+            moduleName="Banks"
+            fields={bankFields}
+            templateData={bankTemplate}
+            fileName="banks"
+          />
+
+          {/* Import/Export for Transactions */}
+          <ImportExport
+            data={localTransactions}
+            onImport={handleTransactionImport}
+            moduleName="Transactions"
+            fields={transactionFields}
+            templateData={transactionTemplate}
+            fileName="transactions"
+          />
+
+          {/* Add Bank Button */}
+          <button
+            onClick={() => {
+              setEditingBank(null);
+              resetBankForm();
+              setShowAddBankModal(true);
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:shadow-lg transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Bank</span>
+          </button>
+        </div>
+      </div>
+      {/* Header
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Bank Statements</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Manage bank accounts and track transactions
           </p>
         </div>
@@ -384,21 +534,19 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
           <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-white dark:bg-gray-700 shadow-sm' 
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
-              }`}
+                }`}
             >
               <Building className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-white dark:bg-gray-700 shadow-sm' 
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm'
                   : 'text-gray-600 dark:text-gray-400'
-              }`}
+                }`}
             >
               <FileText className="w-4 h-4" />
             </button>
@@ -415,7 +563,7 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
             <span>Add Bank</span>
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Year Selector */}
       <div className="flex items-center justify-between">
@@ -453,8 +601,8 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
           </button>
         </div>
       ) : (
-        <div className={viewMode === 'grid' 
-          ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+        <div className={viewMode === 'grid'
+          ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
           : 'space-y-4'
         }>
           {localBanks.map((bank) => {
@@ -512,9 +660,8 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Net</p>
-                      <p className={`text-sm font-semibold ${
-                        monthlySummary.net >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <p className={`text-sm font-semibold ${monthlySummary.net >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         ₹{monthlySummary.net.toLocaleString()}
                       </p>
                     </div>
@@ -563,11 +710,10 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
                   {bankTransactions.slice(0, 5).map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          tx.type === 'credit' 
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                            : 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'credit'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-600'
+                          }`}>
                           {tx.type === 'credit' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         </div>
                         <div>
@@ -576,9 +722,8 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className={`text-sm font-semibold ${
-                          tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <span className={`text-sm font-semibold ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                          }`}>
                           {tx.type === 'credit' ? '+' : '-'}₹{tx.amount.toLocaleString()}
                         </span>
                         <button
@@ -625,7 +770,7 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingBank ? 'Edit Bank Account' : 'Add New Bank Account'}
             </h3>
-            
+
             <form onSubmit={handleBankSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
@@ -785,7 +930,7 @@ const BankStatements = ({ banks, setBanks, transactions, setTransactions }) => {
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               {editingTransaction ? 'Edit Transaction' : 'Add Transaction'} - {selectedBank.name}
             </h3>
-            
+
             <form onSubmit={handleTransactionSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
