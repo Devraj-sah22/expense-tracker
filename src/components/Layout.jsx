@@ -22,6 +22,7 @@ import {
   FileText,
   Landmark,
   Percent,
+  User,  // ADD THIS LINE
 } from 'lucide-react';
 
 const navigation = [
@@ -37,6 +38,7 @@ const navigation = [
   { name: 'Categories', path: '/categories', icon: Tag },
   { name: 'Budget', path: '/budget', icon: Target },
   { name: 'Interest', path: '/interest', icon: Percent },
+  { name: 'Profile', path: '/profile', icon: User },  // ADD THIS LINE
   { name: 'Analytics', path: '/charts', icon: PieChart },
   { name: 'Notes', path: '/notes', icon: FileText },
   { name: 'Export', path: '/export', icon: Download },
@@ -51,7 +53,7 @@ const Layout = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-20 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -80,8 +82,8 @@ const Layout = () => {
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) => `
                   flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
-                  ${isActive 
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg' 
+                  ${isActive
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
@@ -116,14 +118,34 @@ const Layout = () => {
             >
               <Menu className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             </button>
-            
+            {/* Page Title - You can make this dynamic */}
             <div className="flex-1 lg:flex-none">
-              {/* Empty for now */}
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {/* You can add a title here based on current route */}
+              </h2>
             </div>
 
+            {/* User Menu */}
             <div className="flex items-center space-x-4">
-              {/* Quick actions can go here */}
+              <NavLink
+                to="/profile"
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
+                  Profile
+                </span>
+              </NavLink>
             </div>
+            {/* <div className="flex-1 lg:flex-none">
+              {/* Empty for now */}
+            {/* </div> */}
+
+            {/* <div className="flex items-center space-x-4"> */}
+            {/* Quick actions can go here */}
+            {/* </div>  */}
           </div>
         </header>
 

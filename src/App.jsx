@@ -19,6 +19,12 @@ import Categories from './components/Categories';
 import Notes from './components/Notes';
 import BankStatements from './components/BankStatements';
 import InterestCalculator from './components/InterestCalculator';
+// NEW IMPORTS - Add after your existing imports
+import { AuthProvider } from './context/AuthContext';
+import { CalendarProvider } from './context/CalendarContext';
+import ProtectedRoute from './components/guards/ProtectedRoute';
+import Login from './components/auth/Login';
+import Profile from './components/profile/Profile';
 
 function App() {
   // Expenses State
@@ -216,180 +222,364 @@ function App() {
     ));
   };
 
+  // return (
+  //   <ThemeProvider>
+  //     <Router>
+  //       <Toaster
+  //         position="top-right"
+  //         toastOptions={{
+  //           className: 'dark:bg-gray-800 dark:text-white',
+  //           duration: 4000,
+  //           style: {
+  //             background: '#363636',
+  //             color: '#fff',
+  //           },
+  //           success: {
+  //             duration: 3000,
+  //             icon: '✅',
+  //           },
+  //           error: {
+  //             duration: 4000,
+  //             icon: '❌',
+  //           },
+  //         }}
+  //       />
+  //       <Routes>
+  //         <Route path="/" element={<Layout />}>
+  //           <Route index element={<Navigate to="/dashboard" replace />} />
+
+  //           {/* Dashboard Route */}
+  //           <Route path="dashboard" element={
+  //             <Dashboard
+  //               expenses={expenses}
+  //               wallets={wallets}
+  //               income={income}
+  //               budgets={budgets}
+  //               lends={lends}
+  //               loans={loans}
+  //               banks={banks}
+  //             />
+  //           } />
+
+  //           {/* Expenses Routes */}
+  //           <Route path="expenses" element={
+  //             <ExpenseList
+  //               expenses={expenses}
+  //               onDelete={deleteExpense}
+  //               onEdit={editExpense}
+  //               onImport={setExpenses}  // Add this line
+  //               wallets={wallets}
+  //             />
+  //           } />
+  //           {/* <Route path="expenses" element={
+  //             <ExpenseList 
+  //               expenses={expenses}
+  //               onDelete={deleteExpense}
+  //               onEdit={editExpense}
+  //               wallets={wallets}
+  //             />
+  //           } /> */}
+
+  //           <Route path="add-expense" element={
+  //             <AddExpense
+  //               onAddExpense={addExpense}
+  //               wallets={wallets}
+  //             />
+  //           } />
+
+  //           {/* Analytics Route */}
+  //           <Route path="charts" element={
+  //             <Charts expenses={expenses} />
+  //           } />
+
+  //           {/* Budget Route */}
+  //           <Route path="budget" element={
+  //             <BudgetTracker
+  //               expenses={expenses}
+  //               budgets={budgets}
+  //               setBudgets={setBudgets}
+  //             />
+  //           } />
+
+  //           {/* Wallets Route */}
+  //           <Route path="wallets" element={
+  //             <MultiWallet
+  //               wallets={wallets}
+  //               setWallets={setWallets}
+  //             />
+  //           } />
+
+  //           {/* Income Route */}
+  //           <Route path="income" element={
+  //             <IncomeTracker
+  //               income={income}
+  //               setIncome={setIncome}
+  //               expenses={expenses}
+  //             />
+  //           } />
+
+  //           {/* Savings Goals Route */}
+  //           <Route path="savings" element={
+  //             <SavingsGoals
+  //               goals={savingsGoals}
+  //               setGoals={setSavingsGoals}
+  //             />
+  //           } />
+
+  //           {/* Lend Tracker Route */}
+  //           <Route path="lend" element={
+  //             <LendTracker
+  //               lends={lends}
+  //               setLends={setLends}
+  //             />
+  //           } />
+
+  //           {/* Loan Tracker Route */}
+  //           <Route path="loan" element={
+  //             <LoanTracker
+  //               loans={loans}
+  //               setLoans={setLoans}
+  //             />
+  //           } />
+
+  //           {/* Categories Route */}
+  //           <Route path="categories" element={
+  //             <Categories
+  //               categories={categories}
+  //               setCategories={setCategories}
+  //               expenses={expenses}
+  //             />
+  //           } />
+
+  //           {/* Notes Route */}
+  //           <Route path="notes" element={
+  //             <Notes
+  //               notes={notes}
+  //               setNotes={setNotes}
+  //             />
+  //           } />
+
+  //           {/* Bank Statements Route */}
+  //           <Route path="banks" element={
+  //             <BankStatements
+  //               banks={banks}
+  //               setBanks={setBanks}
+  //               transactions={bankTransactions}
+  //               setTransactions={setBankTransactions}
+  //             />
+  //           } />
+
+  //           {/* Interest Calculator Route */}
+  //           <Route path="interest" element={
+  //             <InterestCalculator
+  //               lends={lends}
+  //               setLends={setLends}
+  //               loans={loans}
+  //               setLoans={setLoans}
+  //             />
+  //           } />
+
+  //           {/* Export Data Route */}
+  //           <Route path="export" element={
+  //             <ExportData
+  //               expenses={expenses}
+  //               income={income}
+  //               wallets={wallets}
+  //               savingsGoals={savingsGoals}
+  //               setExpenses={setExpenses}
+  //               setIncome={setIncome}
+  //             />
+  //           } />
+
+  //           {/* Settings Route */}
+  //           <Route path="settings" element={<Settings />} />
+  //         </Route>
+  //       </Routes>
+  //     </Router>
+  //   </ThemeProvider>
+  // );
   return (
     <ThemeProvider>
-      <Router>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            className: 'dark:bg-gray-800 dark:text-white',
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
-              duration: 3000,
-              icon: '✅',
-            },
-            error: {
-              duration: 4000,
-              icon: '❌',
-            },
-          }}
-        />
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+      <AuthProvider>
+        <CalendarProvider>
+          <Router>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                className: 'dark:bg-gray-800 dark:text-white',
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+                success: {
+                  duration: 3000,
+                  icon: '✅',
+                },
+                error: {
+                  duration: 4000,
+                  icon: '❌',
+                },
+              }}
+            />
+            <Routes>
+              {/* PUBLIC ROUTE - Login page (no layout) */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Dashboard Route */}
-            <Route path="dashboard" element={
-              <Dashboard
-                expenses={expenses}
-                wallets={wallets}
-                income={income}
-                budgets={budgets}
-                lends={lends}
-                loans={loans}
-                banks={banks}
-              />
-            } />
+              {/* PROTECTED ROUTES - All wrapped with ProtectedRoute */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Navigate to="/dashboard" replace />} />
 
-            {/* Expenses Routes */}
-            <Route path="expenses" element={
-              <ExpenseList
-                expenses={expenses}
-                onDelete={deleteExpense}
-                onEdit={editExpense}
-                onImport={setExpenses}  // Add this line
-                wallets={wallets}
-              />
-            } />
-            {/* <Route path="expenses" element={
-              <ExpenseList 
-                expenses={expenses}
-                onDelete={deleteExpense}
-                onEdit={editExpense}
-                wallets={wallets}
-              />
-            } /> */}
+                {/* Dashboard Route */}
+                <Route path="dashboard" element={
+                  <Dashboard
+                    expenses={expenses}
+                    wallets={wallets}
+                    income={income}
+                    budgets={budgets}
+                    lends={lends}
+                    loans={loans}
+                    banks={banks}
+                  />
+                } />
 
-            <Route path="add-expense" element={
-              <AddExpense
-                onAddExpense={addExpense}
-                wallets={wallets}
-              />
-            } />
+                {/* Profile Route - NEW */}
+                <Route path="profile" element={<Profile />} />
 
-            {/* Analytics Route */}
-            <Route path="charts" element={
-              <Charts expenses={expenses} />
-            } />
+                {/* Expenses Routes */}
+                <Route path="expenses" element={
+                  <ExpenseList
+                    expenses={expenses}
+                    onDelete={deleteExpense}
+                    onEdit={editExpense}
+                    onImport={setExpenses}
+                    wallets={wallets}
+                  />
+                } />
 
-            {/* Budget Route */}
-            <Route path="budget" element={
-              <BudgetTracker
-                expenses={expenses}
-                budgets={budgets}
-                setBudgets={setBudgets}
-              />
-            } />
+                {/* Add Expense Route */}
+                <Route path="add-expense" element={
+                  <AddExpense
+                    onAddExpense={addExpense}
+                    wallets={wallets}
+                  />
+                } />
 
-            {/* Wallets Route */}
-            <Route path="wallets" element={
-              <MultiWallet
-                wallets={wallets}
-                setWallets={setWallets}
-              />
-            } />
+                {/* Analytics Route */}
+                <Route path="charts" element={
+                  <Charts expenses={expenses} />
+                } />
 
-            {/* Income Route */}
-            <Route path="income" element={
-              <IncomeTracker
-                income={income}
-                setIncome={setIncome}
-                expenses={expenses}
-              />
-            } />
+                {/* Budget Route */}
+                <Route path="budget" element={
+                  <BudgetTracker
+                    expenses={expenses}
+                    budgets={budgets}
+                    setBudgets={setBudgets}
+                  />
+                } />
 
-            {/* Savings Goals Route */}
-            <Route path="savings" element={
-              <SavingsGoals
-                goals={savingsGoals}
-                setGoals={setSavingsGoals}
-              />
-            } />
+                {/* Wallets Route */}
+                <Route path="wallets" element={
+                  <MultiWallet
+                    wallets={wallets}
+                    setWallets={setWallets}
+                  />
+                } />
 
-            {/* Lend Tracker Route */}
-            <Route path="lend" element={
-              <LendTracker
-                lends={lends}
-                setLends={setLends}
-              />
-            } />
+                {/* Income Route */}
+                <Route path="income" element={
+                  <IncomeTracker
+                    income={income}
+                    setIncome={setIncome}
+                    expenses={expenses}
+                  />
+                } />
 
-            {/* Loan Tracker Route */}
-            <Route path="loan" element={
-              <LoanTracker
-                loans={loans}
-                setLoans={setLoans}
-              />
-            } />
+                {/* Savings Goals Route */}
+                <Route path="savings" element={
+                  <SavingsGoals
+                    goals={savingsGoals}
+                    setGoals={setSavingsGoals}
+                  />
+                } />
 
-            {/* Categories Route */}
-            <Route path="categories" element={
-              <Categories
-                categories={categories}
-                setCategories={setCategories}
-                expenses={expenses}
-              />
-            } />
+                {/* Lend Tracker Route */}
+                <Route path="lend" element={
+                  <LendTracker
+                    lends={lends}
+                    setLends={setLends}
+                  />
+                } />
 
-            {/* Notes Route */}
-            <Route path="notes" element={
-              <Notes
-                notes={notes}
-                setNotes={setNotes}
-              />
-            } />
+                {/* Loan Tracker Route */}
+                <Route path="loan" element={
+                  <LoanTracker
+                    loans={loans}
+                    setLoans={setLoans}
+                  />
+                } />
 
-            {/* Bank Statements Route */}
-            <Route path="banks" element={
-              <BankStatements
-                banks={banks}
-                setBanks={setBanks}
-                transactions={bankTransactions}
-                setTransactions={setBankTransactions}
-              />
-            } />
+                {/* Categories Route */}
+                <Route path="categories" element={
+                  <Categories
+                    categories={categories}
+                    setCategories={setCategories}
+                    expenses={expenses}
+                  />
+                } />
 
-            {/* Interest Calculator Route */}
-            <Route path="interest" element={
-              <InterestCalculator
-                lends={lends}
-                setLends={setLends}
-                loans={loans}
-                setLoans={setLoans}
-              />
-            } />
+                {/* Notes Route */}
+                <Route path="notes" element={
+                  <Notes
+                    notes={notes}
+                    setNotes={setNotes}
+                  />
+                } />
 
-            {/* Export Data Route */}
-            <Route path="export" element={
-              <ExportData
-                expenses={expenses}
-                income={income}
-                wallets={wallets}
-                savingsGoals={savingsGoals}
-                setExpenses={setExpenses}
-                setIncome={setIncome}
-              />
-            } />
+                {/* Bank Statements Route */}
+                <Route path="banks" element={
+                  <BankStatements
+                    banks={banks}
+                    setBanks={setBanks}
+                    transactions={bankTransactions}
+                    setTransactions={setBankTransactions}
+                  />
+                } />
 
-            {/* Settings Route */}
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </Router>
+                {/* Interest Calculator Route */}
+                <Route path="interest" element={
+                  <InterestCalculator
+                    lends={lends}
+                    setLends={setLends}
+                    loans={loans}
+                    setLoans={setLoans}
+                  />
+                } />
+
+                {/* Export Data Route */}
+                <Route path="export" element={
+                  <ExportData
+                    expenses={expenses}
+                    income={income}
+                    wallets={wallets}
+                    savingsGoals={savingsGoals}
+                    setExpenses={setExpenses}
+                    setIncome={setIncome}
+                  />
+                } />
+
+                {/* Settings Route */}
+                <Route path="settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </Router>
+        </CalendarProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
