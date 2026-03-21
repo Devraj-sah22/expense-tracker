@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { Calendar, ChevronDown, Check, Sun, Moon, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
-
+import NepaliDate from 'nepali-date-converter';
 const CalendarSettings = () => {
   const {
     calendarSystem,
@@ -40,11 +40,10 @@ const CalendarSettings = () => {
           {/* International Calendar Option */}
           <button
             onClick={() => switchCalendar('international')}
-            className={`p-6 rounded-xl border-2 transition-all text-left ${
-              calendarSystem === 'international'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-            }`}
+            className={`p-6 rounded-xl border-2 transition-all text-left ${calendarSystem === 'international'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -58,7 +57,12 @@ const CalendarSettings = () => {
                   Gregorian (Jan – Dec)
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Today: {formatDate(new Date(), 'full')}
+                  {/* Today: {formatDate(new Date(), 'full')} */}
+                  Today: {formatDate(
+                    new Date().toISOString().split('T')[0],
+                    calendarSystem,
+                    'full'
+                  )}
                 </p>
               </div>
               {calendarSystem === 'international' && (
@@ -70,11 +74,10 @@ const CalendarSettings = () => {
           {/* Bikram Sambat Calendar Option */}
           <button
             onClick={() => switchCalendar('bikram-sambat')}
-            className={`p-6 rounded-xl border-2 transition-all text-left ${
-              calendarSystem === 'bikram-sambat'
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-            }`}
+            className={`p-6 rounded-xl border-2 transition-all text-left ${calendarSystem === 'bikram-sambat'
+              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -88,7 +91,12 @@ const CalendarSettings = () => {
                   Nepali (Baisakh – Chaitra)
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Today: {formatDate(new Date(), 'full')}
+                  {/* Today: {formatDate(new Date(), 'full')} */}
+                  Today: {formatDate(
+                    new Date().toISOString().split('T')[0],
+                    calendarSystem,
+                    'full'
+                  )}
                 </p>
               </div>
               {calendarSystem === 'bikram-sambat' && (
@@ -149,15 +157,15 @@ const CalendarSettings = () => {
         <div className="mt-6">
           <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Year Select</h5>
           <div className="flex flex-wrap gap-2">
-            {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(year => (
+            {/* {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027].map(year => ( */}
+            {availableYears.map(year => (
               <button
                 key={year}
                 onClick={() => setSelectedYear(year)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  selectedYear === year
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-lg transition-colors ${selectedYear === year
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
               >
                 {year}
               </button>
@@ -172,6 +180,11 @@ const CalendarSettings = () => {
         <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Current display: <span className="font-medium text-gray-900 dark:text-white">
+              {/* {months[selectedMonth]} {selectedYear} */}
+              {/* {calendarSystem === 'bikram-sambat'
+                ? `${months[selectedMonth]} ${new NepaliDate(new Date()).getYear()}`
+                : `${months[selectedMonth]} ${selectedYear}`
+              } */}
               {months[selectedMonth]} {selectedYear}
             </span>
           </p>

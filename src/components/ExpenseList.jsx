@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
+//import { format } from 'date-fns';
+import { useCalendar } from '../context/CalendarContext';
 import { Search, Filter, Edit2, Trash2, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ImportExport from './ImportExport';
@@ -16,6 +17,7 @@ const categories = {
 };
 
 const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
+  const { formatDate } = useCalendar();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterWallet, setFilterWallet] = useState('all');
@@ -24,7 +26,7 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
 
   // Import/Export configuration
   const expenseFields = [
-    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
+    { label: 'Date', key: 'date', value: (item) => formatDate(item.date, item.calendarType || 'international') },//formatDate(item.date, item.calendarType) //value: (item) => new Date(item.date).toLocaleDateString() 
     { label: 'Category', key: 'category' },
     { label: 'Description', key: 'description' },
     { label: 'Amount', key: 'amount' },
@@ -48,7 +50,10 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
       id: Date.now() + index,
       amount: parseFloat(row.Amount || row.amount || 0) || 0,
       category: (row.Category || row.category || 'other').toLowerCase(),
-      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      //date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      date: row.Date || row.date || '',
+      //calendarType: row.calendarType || 'international',
+      calendarType: row.calendarType || (row.Date?.startsWith('20') ? 'international' : 'bikram-sambat'),
       description: row.Description || row.description || '',
       paymentMethod: (row['Payment Method'] || row.paymentMethod || 'cash').toLowerCase(),
       walletId: wallets.find(w => w.name.toLowerCase() === (row.Wallet || '').toLowerCase())?.id || wallets[0]?.id,
@@ -74,9 +79,11 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
     .sort((a, b) => {
       switch (sortBy) {
         case 'date-desc':
-          return new Date(b.date) - new Date(a.date);
+          //return new Date(b.date) - new Date(a.date);
+          return b.date.localeCompare(a.date); // ✅ works for both
         case 'date-asc':
-          return new Date(a.date) - new Date(b.date);
+          //return new Date(a.date) - new Date(b.date);
+          return a.date.localeCompare(b.date); // ✅ works for both
         case 'amount-desc':
           return b.amount - a.amount;
         case 'amount-asc':
@@ -257,7 +264,10 @@ const ExpenseList = ({ expenses, onDelete, onEdit, wallets }) => {
                           </p>
                           <div className="flex items-center space-x-2 mt-1">
                             <span className="text-xs text-gray-400">
-                              {format(new Date(expense.date), 'MMM d, yyyy')}
+                              {/* {format(new Date(expense.date), 'MMM d, yyyy')} */}
+                              {/* {formatDate(new Date(expense.date), 'short')} */}
+                              {/* {formatDate(expense.date, expense.calendarType, 'short')} */}
+                              {formatDate(expense.date, expense.calendarType || 'international', 'short')}
                             </span>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs text-gray-400">

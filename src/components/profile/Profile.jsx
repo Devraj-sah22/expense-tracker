@@ -33,7 +33,7 @@ const Profile = () => {
   const { user, updateProfile, signOut, biometricEnabled, enableBiometric, disableBiometric } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { calendarSystem, switchCalendar, activeYear, formatDate } = useCalendar();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedPhone, setEditedPhone] = useState('');
@@ -69,7 +69,17 @@ const Profile = () => {
                 <span>{user?.email}</span>
               </p>
               <p className="text-white/60 text-sm mt-1">
-                Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '2024'}
+                {/* Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '2024'} */}
+                {/* Member since {user?.createdAt
+                  ? formatDate(user.createdAt, calendarSystem, 'full')
+                  : '2024'} */}
+                Member since {user?.createdAt
+                  ? formatDate(
+                    user.createdAt.split('T')[0], // ✅ FIX HERE
+                    calendarSystem,
+                    'full'
+                  )
+                  : '2024'}
               </p>
             </div>
           </div>
@@ -117,11 +127,10 @@ const Profile = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-sm font-medium transition-colors flex items-center space-x-2 border-b-2 ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                className={`px-6 py-4 text-sm font-medium transition-colors flex items-center space-x-2 border-b-2 ${activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -236,14 +245,12 @@ const Profile = () => {
                     </div>
                     <button
                       onClick={toggleDarkMode}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          isDarkMode ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -256,7 +263,7 @@ const Profile = () => {
           {activeTab === 'security' && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Security Settings</h3>
-              
+
               <div className="premium-card p-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -271,11 +278,10 @@ const Profile = () => {
                   </div>
                   <button
                     onClick={biometricEnabled ? disableBiometric : enableBiometric}
-                    className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                      biometricEnabled
-                        ? 'bg-white text-blue-600 hover:bg-blue-50'
-                        : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
+                    className={`px-6 py-3 rounded-xl font-semibold transition-all ${biometricEnabled
+                      ? 'bg-white text-blue-600 hover:bg-blue-50'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                      }`}
                   >
                     {biometricEnabled ? 'Disable Biometric' : 'Enable Biometric'}
                   </button>

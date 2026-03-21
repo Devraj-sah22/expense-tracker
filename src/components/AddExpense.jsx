@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, CreditCard, Tag, FileText, Wallet } from 'lucide-react';
+import { useCalendar } from '../context/CalendarContext';
+//import NepaliDate from 'nepali-date-converter';
 import toast from 'react-hot-toast';
+import DateInput from '../components/common/DateInput';
 
 const categories = [
   { id: 'food', name: 'Food', icon: '🍔', color: 'from-orange-400 to-red-400' },
@@ -23,10 +26,13 @@ const paymentMethods = [
 
 const AddExpense = ({ onAddExpense, wallets }) => {
   const navigate = useNavigate();
+  const { calendarSystem } = useCalendar();
   const [formData, setFormData] = useState({
     amount: '',
     category: '',
-    date: new Date().toISOString().split('T')[0],
+    //date: new Date().toISOString().split('T')[0],
+    date: '',
+    calendarType: calendarSystem, // ✅ ADD THIS
     description: '',
     paymentMethod: 'cash',
     //walletId: wallets[0]?.id || '',
@@ -49,6 +55,36 @@ const AddExpense = ({ onAddExpense, wallets }) => {
       return;
     }
 
+
+    // onAddExpense({
+    //   ...formData,
+    //   amount: parseFloat(formData.amount),
+    // });
+    // let finalDate;
+
+    // if (calendarSystem === 'bikram-sambat') {
+    //   // convert BS → AD
+    //   const [year, month, day] = formData.date.split('-').map(Number);
+    //   const NepaliDate = require('nepali-date-converter');
+    //   const nep = new NepaliDate(year, month - 1, day);
+    //   finalDate = nep.toJsDate();
+    // } 
+    // if (calendarSystem === 'bikram-sambat') {
+    //   // convert BS → AD
+    //   const [year, month, day] = formData.date.split('-').map(Number);
+    //   const nep = new NepaliDate(year, month - 1, day); // ✅ FIXED
+    //   finalDate = nep.toJsDate();
+    // } else {
+    //   finalDate = new Date(formData.date);
+    // }
+
+    // onAddExpense({
+    //   ...formData,
+    //   //date: finalDate.toISOString(), // ✅ FIXED
+    //   date: formData.date, // ✅ store as user entered
+    //   calendarType: calendarSystem, // ✅ VERY IMPORTANT
+    //   amount: parseFloat(formData.amount),
+    // });
     onAddExpense({
       ...formData,
       amount: parseFloat(formData.amount),
@@ -125,13 +161,23 @@ const AddExpense = ({ onAddExpense, wallets }) => {
                 <Calendar className="w-4 h-4 inline mr-2" />
                 Date *
               </label>
-              <input
+              {/* <input
                 type="date"
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
+              /> */}
+              <DateInput
+                value={formData.date}
+                onChange={({ date, calendarType }) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    date,
+                    calendarType
+                  }));
+                }}
               />
             </div>
 

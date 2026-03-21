@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
+//import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
   Target,
   AlertCircle,
   Award,
@@ -13,20 +13,88 @@ import {
   Landmark
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useCalendar } from '../context/CalendarContext';
+import NepaliDate from 'nepali-date-converter';
 
 const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [], banks = [] }) => {
+  //const { formatDate } = useCalendar(); // ✅ ADD HERE
+  const { formatDate, calendarSystem, activeYear, activeMonth } = useCalendar();
   // Calculate today's expenses
-  const today = new Date();
-  const todayExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate >= startOfDay(today) && expenseDate <= endOfDay(today);
-  }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // const today = new Date();
+  // const { getToday } = useCalendar();
+  // const today = getToday();
+  // const todayExpenses = expenses.filter(expense => {
+  //   const expenseDate = new Date(expense.date);
+  //   return expenseDate >= startOfDay(today) && expenseDate <= endOfDay(today);
+  // }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   // Calculate monthly expenses
-  const monthlyExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate >= startOfMonth(today) && expenseDate <= endOfMonth(today);
-  }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // const monthlyExpenses = expenses.filter(expense => {
+  //   const expenseDate = new Date(expense.date);
+  //   return expenseDate >= startOfMonth(today) && expenseDate <= endOfMonth(today);
+  // }).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // ✅ TODAY EXPENSE (calendar-safe)
+  // ✅ TODAY EXPENSE (calendar-safe without conversion)
+  // const todayExpenses = expenses
+  //   .filter(exp => {
+  //     if (exp.calendarType !== calendarSystem) return false;
+
+  //     //const [year, month] = exp.date.split('-').map(Number);
+  //     if (!exp.date) return false;
+
+  //     const parts = exp.date.split('-');
+  //     if (parts.length < 2) return false;
+
+  //     const [year, month] = parts.map(Number);
+
+  //     // ✅ use active year + month instead of JS Date
+  //     return year === activeYear && (month - 1) === activeMonth;
+  //   })
+  //   .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const todayExpenses = expenses
+    .filter(exp => {
+      if (!exp.date) return false;
+
+      const nep = new NepaliDate(new Date(exp.date));
+      const today = new NepaliDate(new Date());
+
+      return (
+        nep.getYear() === today.getYear() &&
+        nep.getMonth() === today.getMonth() &&
+        nep.getDate() === today.getDate()
+      );
+    })
+    .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+
+  // ✅ MONTHLY EXPENSE (calendar-safe)
+  const monthlyExpenses = expenses
+    .filter(exp => {
+      if (!exp.date) return false;
+
+      // ✅ Convert AD → BS
+      const nep = new NepaliDate(new Date(exp.date));
+
+      const year = nep.getYear();
+      const month = nep.getMonth(); // 0-based
+
+      return year === activeYear && month === activeMonth;
+    })
+    .reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  // const monthlyExpenses = expenses
+  //   .filter(exp => {
+  //     if (exp.calendarType !== calendarSystem) return false;
+
+  //     //const [year, month] = exp.date.split('-').map(Number);
+  //     if (!exp.date) return false;
+
+  //     const parts = exp.date.split('-');
+  //     if (parts.length < 2) return false;
+
+  //     const [year, month] = parts.map(Number);
+
+  //     return year === activeYear && (month - 1) === activeMonth;
+  //   })
+  //   .reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
   // Calculate total income
   const totalIncome = income.reduce((sum, inc) => sum + (inc.amount || 0), 0);
@@ -60,22 +128,23 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [],
   }, [monthlyBudgetProgress]);
 
   // Calculate daily spending score (1-10)
-  const spendingScore = budgets.daily > 0 
+  const spendingScore = budgets.daily > 0
     ? Math.max(0, Math.min(10, 10 - (todayExpenses / (budgets.daily / 10))))
     : 10;
 
   // Calculate financial health meter
-  const savingsRate = totalIncome > 0 
-    ? ((totalIncome - monthlyExpenses) / totalIncome) * 100 
+  const savingsRate = totalIncome > 0
+    ? ((totalIncome - monthlyExpenses) / totalIncome) * 100
     : 0;
-  
-  const healthStatus = savingsRate >= 30 ? 'Excellent' : 
-                      savingsRate >= 20 ? 'Good' : 
-                      savingsRate >= 10 ? 'Fair' : 'Needs Improvement';
+
+  const healthStatus = savingsRate >= 30 ? 'Excellent' :
+    savingsRate >= 20 ? 'Good' :
+      savingsRate >= 10 ? 'Fair' : 'Needs Improvement';
 
   const stats = [
     {
-      name: 'Today\'s Spending',
+      //name: 'Today\'s Spending',
+      name: 'Current Month Spending',
       value: `₹${todayExpenses.toLocaleString()}`,
       change: todayExpenses > budgets.daily ? '+12%' : '-8%',
       changeType: todayExpenses > budgets.daily ? 'negative' : 'positive',
@@ -114,7 +183,13 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [],
               Welcome back! 👋
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+              {/* {format(new Date(), 'EEEE, MMMM d, yyyy')} */}
+              {/* {formatDate(new Date(), 'full')} */}
+              {formatDate(
+                new Date().toISOString().split('T')[0],
+                'international',
+                'full'
+              )}
             </p>
           </div>
           <div className="text-right">
@@ -230,7 +305,7 @@ const Dashboard = ({ expenses, wallets, income, budgets, lends = [], loans = [],
             </span>
           </div>
           <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-500"
               style={{ width: `${Math.min(savingsRate, 100)}%` }}
             />
