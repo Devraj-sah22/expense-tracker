@@ -3,6 +3,8 @@ import { Plus, TrendingUp, Edit2, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import ImportExport from './ImportExport';
+import DateInput from './common/DateInput';
+import { useCalendar } from '../context/CalendarContext';
 
 const incomeSources = [
   { id: 'salary', name: 'Salary', icon: '💼', color: 'blue' },
@@ -20,11 +22,14 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
   const [formData, setFormData] = useState({
     amount: '',
     source: 'salary',
-    date: new Date().toISOString().split('T')[0],
+    //date: new Date().toISOString().split('T')[0],
+    date: '',
+    calendarType: 'international',
     description: '',
     isRecurring: false,
     recurringInterval: 'monthly',
   });
+  const { formatDate } = useCalendar();
   // Import/Export configuration
   const incomeFields = [
     { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
@@ -49,7 +54,9 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
       id: Date.now() + index,
       amount: parseFloat(row.Amount || row.amount || 0) || 0,
       source: (row.Source || row.source || 'other').toLowerCase(),
-      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      //date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      date: row.Date || row.date || '',
+      calendarType: 'international',
       description: row.Description || row.description || '',
       isRecurring: (row.Recurring || '').toLowerCase() === 'yes',
     }));
@@ -69,7 +76,9 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
       id: editingIncome?.id || Date.now().toString(),
       ...formData,
       amount: parseFloat(formData.amount),
-      date: new Date(formData.date).toISOString(),
+      //date: new Date(formData.date).toISOString(),
+      date: formData.date,
+      calendarType: formData.calendarType,
     };
 
     if (editingIncome) {
@@ -85,7 +94,9 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
     setFormData({
       amount: '',
       source: 'salary',
-      date: new Date().toISOString().split('T')[0],
+      //date: new Date().toISOString().split('T')[0],
+      date: '',
+      calendarType: 'international',
       description: '',
       isRecurring: false,
       recurringInterval: 'monthly',
@@ -104,7 +115,9 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
     setFormData({
       amount: incomeItem.amount,
       source: incomeItem.source,
-      date: incomeItem.date.split('T')[0],
+      //date: incomeItem.date.split('T')[0],
+      date: incomeItem.date,
+      calendarType: incomeItem.calendarType || 'international',
       description: incomeItem.description || '',
       isRecurring: incomeItem.isRecurring || false,
       recurringInterval: incomeItem.recurringInterval || 'monthly',
@@ -120,7 +133,8 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
 
   // Group income by month
   const monthlyIncome = income.reduce((acc, item) => {
-    const month = format(new Date(item.date), 'MMM yyyy');
+    //const month = format(new Date(item.date), 'MMM yyyy');
+    const month = formatDate(item.date, item.calendarType);
     if (!acc[month]) {
       acc[month] = 0;
     }
@@ -153,7 +167,9 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
               setFormData({
                 amount: '',
                 source: 'salary',
-                date: new Date().toISOString().split('T')[0],
+                //date: new Date().toISOString().split('T')[0],
+                date: '',
+                calendarType: 'international',
                 description: '',
                 isRecurring: false,
                 recurringInterval: 'monthly',
@@ -257,12 +273,22 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
                   <Calendar className="w-4 h-4 inline mr-2" />
                   Date *
                 </label>
-                <input
+                {/* <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                   required
+                /> */}
+                <DateInput
+                  value={formData.date}
+                  onChange={(data) =>
+                    setFormData({
+                      ...formData,
+                      date: data.date,
+                      calendarType: data.calendarType,
+                    })
+                  }
                 />
               </div>
 
@@ -361,7 +387,8 @@ const IncomeTracker = ({ income, setIncome, expenses }) => {
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
                           <span className="text-xs text-gray-400">
-                            {format(new Date(item.date), 'MMM d, yyyy')}
+                            {/* {format(new Date(item.date), 'MMM d, yyyy')} */}
+                            {formatDate(item.date, item.calendarType)}
                           </span>
                           {item.isRecurring && (
                             <>
