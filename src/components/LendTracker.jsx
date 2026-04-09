@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Plus, Users, User, Phone, Calendar, DollarSign, Edit2, Trash2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+//import { format } from 'date-fns';
 import ImportExport from './ImportExport';
+import DateInput from './common/DateInput';
+import { useCalendar } from '../context/CalendarContext';
 
 const LendTracker = ({ lends, setLends }) => {
+  const { formatDate } = useCalendar();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLend, setEditingLend] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, repaid
@@ -12,8 +15,12 @@ const LendTracker = ({ lends, setLends }) => {
     personName: '',
     personPhone: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    // date: new Date().toISOString().split('T')[0],
+    // dueDate: '',
+    date: '',
+    calendarType: 'international',
     dueDate: '',
+    dueCalendarType: 'international',
     description: '',
     status: 'pending',
     notes: '',
@@ -23,8 +30,13 @@ const LendTracker = ({ lends, setLends }) => {
     { label: 'Person Name', key: 'personName' },
     { label: 'Phone', key: 'personPhone' },
     { label: 'Amount', key: 'amount' },
-    { label: 'Date', key: 'date', value: (item) => new Date(item.date).toLocaleDateString() },
-    { label: 'Due Date', key: 'dueDate', value: (item) => item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '' },
+    { label: 'Date', key: 'date', value: (item) => formatDate(item.date, item.calendarType) },//value: (item) => new Date(item.date).toLocaleDateString() 
+    {
+      label: 'Due Date', key: 'dueDate', value: (item) =>
+        item.dueDate
+          ? formatDate(item.dueDate, item.dueCalendarType)
+          : ''
+    },//value: (item) => item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '' 
     { label: 'Status', key: 'status' },
     { label: 'Description', key: 'description' },
   ];
@@ -43,12 +55,17 @@ const LendTracker = ({ lends, setLends }) => {
 
   const handleLendImport = (importedData) => {
     const newLends = importedData.map((row, index) => ({
-      id: Date.now() + index,
+      //id: Date.now() + index,
+      id: (Date.now() + index).toString(),
       personName: row['Person Name'] || row.personName || '',
       personPhone: row.Phone || row.personPhone || '',
       amount: parseFloat(row.Amount || row.amount || 0) || 0,
-      date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
-      dueDate: row['Due Date'] || row.dueDate ? new Date(row['Due Date'] || row.dueDate).toISOString() : null,
+      // date: row.Date || row.date ? new Date(row.Date || row.date).toISOString() : new Date().toISOString(),
+      // dueDate: row['Due Date'] || row.dueDate ? new Date(row['Due Date'] || row.dueDate).toISOString() : null,
+      date: row.Date || row.date || '',
+      calendarType: 'international',
+      dueDate: row['Due Date'] || row.dueDate || '',
+      dueCalendarType: 'international',
       status: (row.Status || row.status || 'pending').toLowerCase(),
       description: row.Description || row.description || '',
       notes: '',
@@ -61,7 +78,8 @@ const LendTracker = ({ lends, setLends }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.personName || !formData.amount) {
+    //if (!formData.personName || !formData.amount) 
+    if (!formData.personName || !formData.amount || !formData.date) {
       toast.error('Please fill in required fields');
       return;
     }
@@ -77,8 +95,13 @@ const LendTracker = ({ lends, setLends }) => {
       personName: formData.personName,
       personPhone: formData.personPhone || '',
       amount: amountValue,
-      date: new Date(formData.date).toISOString(),
-      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
+      // date: new Date(formData.date).toISOString(),
+      // dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
+      date: formData.date,
+      calendarType: formData.calendarType,
+      //dueDate: formData.dueDate || '',
+      dueDate: formData.dueDate || null,
+      dueCalendarType: formData.dueCalendarType,
       description: formData.description || '',
       status: formData.status,
       notes: formData.notes || '',
@@ -103,8 +126,12 @@ const LendTracker = ({ lends, setLends }) => {
       personName: '',
       personPhone: '',
       amount: '',
-      date: new Date().toISOString().split('T')[0],
+      // date: new Date().toISOString().split('T')[0],
+      // dueDate: '',
+      date: '',
+      calendarType: 'international',
       dueDate: '',
+      dueCalendarType: 'international',
       description: '',
       status: 'pending',
       notes: '',
@@ -117,8 +144,12 @@ const LendTracker = ({ lends, setLends }) => {
       personName: lend.personName || '',
       personPhone: lend.personPhone || '',
       amount: lend.amount?.toString() || '',
-      date: lend.date ? lend.date.split('T')[0] : new Date().toISOString().split('T')[0],
-      dueDate: lend.dueDate ? lend.dueDate.split('T')[0] : '',
+      // date: lend.date ? lend.date.split('T')[0] : new Date().toISOString().split('T')[0],
+      // dueDate: lend.dueDate ? lend.dueDate.split('T')[0] : '',
+      date: lend.date,
+      calendarType: lend.calendarType || 'international',
+      dueDate: lend.dueDate || '',
+      dueCalendarType: lend.dueCalendarType || 'international',
       description: lend.description || '',
       status: lend.status || 'pending',
       notes: lend.notes || '',
@@ -292,12 +323,22 @@ const LendTracker = ({ lends, setLends }) => {
                     <Calendar className="w-4 h-4 inline mr-2" />
                     Lend Date *
                   </label>
-                  <input
+                  {/* <input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                     required
+                  /> */}
+                  <DateInput
+                    value={formData.date}
+                    onChange={(data) =>
+                      setFormData({
+                        ...formData,
+                        date: data.date,
+                        calendarType: data.calendarType,
+                      })
+                    }
                   />
                 </div>
 
@@ -306,11 +347,21 @@ const LendTracker = ({ lends, setLends }) => {
                     <Calendar className="w-4 h-4 inline mr-2" />
                     Due Date
                   </label>
-                  <input
+                  {/* <input
                     type="date"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                  /> */}
+                  <DateInput
+                    value={formData.dueDate}
+                    onChange={(data) =>
+                      setFormData({
+                        ...formData,
+                        dueDate: data.date,
+                        dueCalendarType: data.calendarType,
+                      })
+                    }
                   />
                 </div>
 
@@ -389,8 +440,18 @@ const LendTracker = ({ lends, setLends }) => {
           ) : (
             filteredLends.map((lend) => {
               const amount = lend.amount || 0;
-              const dueDate = lend.dueDate ? new Date(lend.dueDate) : null;
-              const isOverdue = dueDate && dueDate < new Date() && lend.status === 'pending';
+              // const dueDate = lend.dueDate ? new Date(lend.dueDate) : null;
+              // const isOverdue = dueDate && dueDate < new Date() && lend.status === 'pending';
+              const dueDate =
+                lend.dueCalendarType === 'international' && lend.dueDate
+                  ? new Date(lend.dueDate)
+                  : null;
+
+              const isOverdue =
+                lend.dueCalendarType === 'international' &&
+                dueDate &&
+                dueDate < new Date() &&
+                lend.status === 'pending';
 
               return (
                 <div key={lend.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -413,7 +474,8 @@ const LendTracker = ({ lends, setLends }) => {
                             </span>
                           )}
                           <span className="text-xs text-gray-500">
-                            {format(new Date(lend.date), 'MMM d, yyyy')}
+                            {/* {format(new Date(lend.date), 'MMM d, yyyy')} */}
+                            {formatDate(lend.date, lend.calendarType)}
                           </span>
                         </div>
                         {lend.description && (
@@ -459,7 +521,8 @@ const LendTracker = ({ lends, setLends }) => {
                   {dueDate && lend.status === 'pending' && (
                     <div className={`mt-2 text-xs ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
                       {isOverdue ? 'Overdue: ' : 'Due: '}
-                      {format(dueDate, 'MMM d, yyyy')}
+                      {/* {format(dueDate, 'MMM d, yyyy')} */}
+                      {formatDate(lend.dueDate, lend.dueCalendarType)}
                     </div>
                   )}
                 </div>
