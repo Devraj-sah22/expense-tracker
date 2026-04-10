@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Plus, Target, Edit2, Trash2, TrendingUp, Calendar, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ImportExport from './ImportExport';
+import DateInput from './common/DateInput';
+import { useCalendar } from '../context/CalendarContext';
 
 const SavingsGoals = ({ goals, setGoals }) => {
+  const { formatDate } = useCalendar();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [formData, setFormData] = useState({
@@ -11,6 +14,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
     target: '',
     saved: '',
     deadline: '',
+    calendarType: 'international', // ✅ ADD THIS
     icon: '🎯',
     category: 'general',
   });
@@ -31,7 +35,13 @@ const SavingsGoals = ({ goals, setGoals }) => {
     { label: 'Target Amount', key: 'target' },
     { label: 'Saved Amount', key: 'saved' },
     { label: 'Category', key: 'category' },
-    { label: 'Deadline', key: 'deadline', value: (item) => item.deadline ? new Date(item.deadline).toLocaleDateString() : '' },
+    // { label: 'Deadline', key: 'deadline', value: (item) => item.deadline ? new Date(item.deadline).toLocaleDateString() : '' },
+    {
+      label: 'Deadline', key: 'deadline', value: (item) =>
+        item.deadline
+          ? formatDate(item.deadline, item.calendarType)
+          : ''
+    },
     { label: 'Progress', key: 'progress', value: (item) => `${item.progress?.toFixed(1)}%` },
   ];
 
@@ -56,7 +66,9 @@ const SavingsGoals = ({ goals, setGoals }) => {
         target: target,
         saved: saved,
         category: (row.Category || row.category || 'general').toLowerCase(),
-        deadline: row.Deadline || row.deadline || null,
+        //deadline: row.Deadline || row.deadline || null,
+        deadline: row.Deadline || row.deadline || '',
+        calendarType: 'international',
         icon: goalIcons[(row.Category || 'general').toLowerCase()] || '🎯',
         progress: target > 0 ? (saved / target) * 100 : 0,
         createdAt: new Date().toISOString(),
@@ -87,7 +99,9 @@ const SavingsGoals = ({ goals, setGoals }) => {
       name: formData.name,
       target: targetAmount,
       saved: savedAmount,
+      //deadline: formData.deadline,
       deadline: formData.deadline,
+      calendarType: formData.calendarType,
       icon: formData.icon,
       category: formData.category,
       progress: targetAmount > 0 ? (savedAmount / targetAmount) * 100 : 0,
@@ -112,7 +126,9 @@ const SavingsGoals = ({ goals, setGoals }) => {
       name: '',
       target: '',
       saved: '',
+      //deadline: '',
       deadline: '',
+      calendarType: 'international',
       icon: '🎯',
       category: 'general',
     });
@@ -132,6 +148,7 @@ const SavingsGoals = ({ goals, setGoals }) => {
       target: goal.target?.toString() || '',
       saved: goal.saved?.toString() || '',
       deadline: goal.deadline || '',
+      calendarType: goal.calendarType || 'international',
       icon: goal.icon || '🎯',
       category: goal.category || 'general',
     });
@@ -333,10 +350,21 @@ const SavingsGoals = ({ goals, setGoals }) => {
                   <Calendar className="w-4 h-4 inline mr-2" />
                   Target Date (Optional)
                 </label>
-                <input
+                {/* <input
                   type="date"
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                /> */}
+                <DateInput
+                  value={formData.deadline}
+                  onChange={(data) =>
+                    setFormData({
+                      ...formData,
+                      deadline: data.date,
+                      calendarType: data.calendarType,
+                    })
+                  }
                   className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                 />
               </div>
@@ -445,7 +473,8 @@ const SavingsGoals = ({ goals, setGoals }) => {
                   {goal.deadline && (
                     <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                       <Calendar className="w-4 h-4" />
-                      <span>Target: {new Date(goal.deadline).toLocaleDateString()}</span>
+                      {/* <span>Target: {new Date(goal.deadline).toLocaleDateString()}</span> */}
+                      <span>Target: {formatDate(goal.deadline, goal.calendarType)}</span>
                     </div>
                   )}
 
