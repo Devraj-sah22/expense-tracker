@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Plus, CreditCard, Calendar, DollarSign, Edit2, Trash2, Building, Percent, Home, Car, Briefcase, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+//import { format } from 'date-fns';
 import ImportExport from './ImportExport';
+import DateInput from './common/DateInput';
+import { useCalendar } from '../context/CalendarContext';
 
 const LoanTracker = ({ loans, setLoans }) => {
+  const { formatDate } = useCalendar();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLoan, setEditingLoan] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -15,7 +18,9 @@ const LoanTracker = ({ loans, setLoans }) => {
     interestRate: '',
     tenure: '',
     tenureType: 'months',
-    startDate: new Date().toISOString().split('T')[0],
+    //startDate: new Date().toISOString().split('T')[0],
+    startDate: '',
+    calendarType: 'international',
     emiAmount: '',
     paidAmount: '0',
     status: 'active',
@@ -27,7 +32,8 @@ const LoanTracker = ({ loans, setLoans }) => {
     { label: 'Loan Type', key: 'loanType' },
     { label: 'Principal', key: 'principalAmount' },
     { label: 'Interest Rate', key: 'interestRate' },
-    { label: 'Start Date', key: 'startDate', value: (item) => new Date(item.startDate).toLocaleDateString() },
+    // { label: 'Start Date', key: 'startDate', value: (item) => new Date(item.startDate).toLocaleDateString() },
+    { label: 'Start Date', key: 'startDate', value: (item) => formatDate(item.startDate, item.calendarType) },
     { label: 'Paid Amount', key: 'paidAmount' },
     { label: 'Remaining', key: 'remainingAmount' },
     { label: 'Status', key: 'status' },
@@ -49,16 +55,21 @@ const LoanTracker = ({ loans, setLoans }) => {
     const newLoans = importedData.map((row, index) => {
       const principal = parseFloat(row.Principal || row.principal || 0) || 0;
       const paid = parseFloat(row['Paid Amount'] || row.paidAmount || 0) || 0;
-
+      const rawDate = row['Start Date'] || row.startDate;
       return {
-        id: Date.now() + index,
+        //id: Date.now() + index,
+        id: (Date.now() + index).toString(),
         lenderName: row['Lender Name'] || row.lenderName || '',
         loanType: (row['Loan Type'] || row.loanType || 'personal').toLowerCase(),
         principalAmount: principal,
         interestRate: parseFloat(row['Interest Rate'] || row.interestRate || 0) || 0,
-        startDate: row['Start Date'] || row.startDate ? new Date(row['Start Date'] || row.startDate).toISOString() : new Date().toISOString(),
+        //startDate: row['Start Date'] || row.startDate ? new Date(row['Start Date'] || row.startDate).toISOString() : new Date().toISOString(),
+        startDate: rawDate
+          ? new Date(rawDate).toISOString()
+          : new Date().toISOString(),
         paidAmount: paid,
-        remainingAmount: principal - paid,
+        //remainingAmount: principal - paid
+        remainingAmount: Math.max(principal - paid, 0),
         status: (row.Status || row.status || 'active').toLowerCase(),
         progress: principal > 0 ? (paid / principal) * 100 : 0,
         notes: '',
@@ -80,7 +91,8 @@ const LoanTracker = ({ loans, setLoans }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.lenderName || !formData.principalAmount) {
+    // if (!formData.lenderName || !formData.principalAmount) 
+    if (!formData.lenderName || !formData.principalAmount || !formData.startDate) {
       toast.error('Please fill in required fields');
       return;
     }
@@ -102,7 +114,9 @@ const LoanTracker = ({ loans, setLoans }) => {
       interestRate: parseFloat(formData.interestRate) || 0,
       tenure: formData.tenure || '',
       tenureType: formData.tenureType,
-      startDate: new Date(formData.startDate).toISOString(),
+      //startDate: new Date(formData.startDate).toISOString(),
+      startDate: formData.startDate,
+      calendarType: formData.calendarType,
       emiAmount: parseFloat(formData.emiAmount) || 0,
       paidAmount: paid,
       remainingAmount: Math.max(remaining, 0),
@@ -133,7 +147,9 @@ const LoanTracker = ({ loans, setLoans }) => {
       interestRate: '',
       tenure: '',
       tenureType: 'months',
-      startDate: new Date().toISOString().split('T')[0],
+      //startDate: new Date().toISOString().split('T')[0],
+      startDate: '',
+      calendarType: 'international',
       emiAmount: '',
       paidAmount: '0',
       status: 'active',
@@ -372,11 +388,21 @@ const LoanTracker = ({ loans, setLoans }) => {
                     <Calendar className="w-4 h-4 inline mr-2" />
                     Start Date
                   </label>
-                  <input
+                  {/* <input
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                  /> */}
+                  <DateInput
+                    value={formData.startDate}
+                    onChange={(data) =>
+                      setFormData({
+                        ...formData,
+                        startDate: data.date,
+                        calendarType: data.calendarType,
+                      })
+                    }
                   />
                 </div>
 
@@ -518,7 +544,8 @@ const LoanTracker = ({ loans, setLoans }) => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{loan.lenderName}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{loanType.name}</p>
                       <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                        <span>Started: {loan.startDate ? format(new Date(loan.startDate), 'MMM d, yyyy') : 'N/A'}</span>
+                        {/* <span>Started: {loan.startDate ? format(new Date(loan.startDate), 'MMM d, yyyy') : 'N/A'}</span> */}
+                        <span>Started: {loan.startDate ? formatDate(loan.startDate, loan.calendarType) : 'N/A'}</span>
                         {loan.interestRate > 0 && (
                           <span>Interest: {loan.interestRate}%</span>
                         )}
